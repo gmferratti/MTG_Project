@@ -129,17 +129,14 @@ class Deck:
         
         # Verifica se o número de cartas está dentro dos limites
         if not (self.min_cards <= len(self.cards) <= self.max_cards):
-            print("Deck is invalid due to number of cards")
             return False
         
         # Verifica se o número de terrenos está dentro dos limites
         if not (self.min_lands <= num_lands <= self.max_lands):
-            print("Deck is invalid due to number of lands")
             return False
         
         # Verifica se todas as cores no deck têm um terreno correspondente
         if not colors_in_deck.issubset(land_colors):
-            print("Deck is invalid due to land colors not matching card colors")
             return False
 
         return True
