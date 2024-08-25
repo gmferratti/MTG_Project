@@ -1,6 +1,6 @@
 from hand import Hand
-from deck import Deck
 from library import Library
+from deck import Deck
 
 class Player:
     """
@@ -18,6 +18,8 @@ class Player:
         The library (deck) of the player, representing the remaining cards in the deck.
     mulligan_count : int
         The number of mulligans the player has taken.
+    turno : int
+        The current turn number for the player.
     """
 
     def __init__(self, name: str, deck: Deck):
@@ -40,17 +42,17 @@ class Player:
             raise ValueError("The deck provided is not valid.")
         
         self.name = name
-        self.deck = deck
+        self.deck = deck  # Armazena o deck original
         self.mulligan_count = 0
-        self.hand = Hand()
-        self.library = Library(deck)
-
+        self.turno = 0  # Inicializa o turno como 0
+        self.hand = Hand()  # A mão é criada vazia
+        self.library = Library(deck)  # A biblioteca é criada a partir do deck
 
     def draw_initial_hand(self):
         """
         Draws the initial hand of 7 cards from the library.
         """
-        self.hand = Hand()
+        self.hand = Hand()  # Reseta a mão
         for _ in range(7):
             self.hand.add_card(self.library.draw_card())
 
@@ -60,7 +62,7 @@ class Player:
         after drawing 7 cards. Cards are returned to the library based on balance rules.
         """
         self.mulligan_count += 1
-        self.draw_initial_hand()
+        self.draw_initial_hand()  # Compra sempre 7 cartas
 
         cards_to_return = self.mulligan_count
 
@@ -76,6 +78,31 @@ class Player:
             self.library.return_card(card_to_return)
             cards_to_return -= 1
 
+    def next_turn(self):
+        """
+        Advances the game to the next turn. The player draws one card from the library
+        and adds it to their hand. If the player has more than 7 cards in hand at the
+        end of the turn, they must discard a card. The turn number is incremented.
+        """
+        self.turno += 1  # Incrementa o turno
+        drawn_card = self.library.draw_card()  # Retira uma carta da library
+        self.hand.add_card(drawn_card)  # Adiciona a carta à mão
+        
+        # Verificar se a mão tem mais de 7 cartas e descartar uma se necessário
+        if len(self.hand.cards) > 7:
+            self.discard_card()
+
+    def discard_card(self):
+        """
+        Discards a card from the player's hand if they have more than 7 cards.
+        The discarded card is returned to the library.
+        """
+        # Por simplicidade, vamos descartar a carta com o maior custo de mana
+        card_to_discard = max(self.hand.cards, key=lambda c: c.cmc)
+        self.hand.remove_card(card_to_discard)
+        self.library.return_card(card_to_discard)
+        print(f"{self.name} descarta {card_to_discard.name}.")
+
     def __repr__(self):
         """
         Returns a string representation of the player.
@@ -83,6 +110,6 @@ class Player:
         Returns:
         --------
         str
-            A string representation showing the player's name, hand, and library.
+            A string representation showing the player's name, hand, library, and current turn.
         """
-        return f"Player({self.name}, Hand: {self.hand}, Library: {self.library})"
+        return f"Player({self.name}, Turn: {self.turno}, Hand: {self.hand}, Library: {self.library})"

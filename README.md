@@ -1,4 +1,4 @@
-# API + Modelo ML MTGA
+# Magic Curve Simulator
 
 API para extração dos dados do card game Magic: The Gathering Arena.
 Tais dados alimentarão uma base de dados que, por sua vez, alimentarão
