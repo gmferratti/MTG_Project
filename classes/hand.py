@@ -44,6 +44,9 @@ class Hand:
         for _ in range(min(num_cards, len(library))):
             self.add_card(library.draw_card())
 
+    # Percebi agora que tanto player quanto hand tem play_land e play_spell
+    # Revisar a relação desses caras e unificar os métodos.
+    
     def play_land(self, card: Card, tracker: 'Plays', player: 'Player') -> bool:
         """
         Tenta jogar uma carta de terreno. Permite jogar mais de um terreno se
