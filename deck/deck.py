@@ -1,4 +1,7 @@
-from mtgsdk import Card, Set
+import pandas as pd
+from typing import Dict, Union
+from mtgsdk import Card
+
 
 class Deck:
     """
@@ -20,6 +23,43 @@ class Deck:
         self.exception_cards = exception_cards or []
 
         self.cards = []
+        self.deck_name = None  # Atributo para armazenar o nome do deck
+
+    def load_deck_from_txt(self, file_path: str):
+        """
+        Loads the deck name and cards from a .txt file and assigns them to the Deck object.
+
+        Args:
+            file_path (str): The path to the .txt file containing the deck information.
+
+        Returns:
+            None
+        """
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+
+        # Extrair o nome do deck
+        deck_list_started = False
+        for line in lines:
+            line = line.strip()
+            if line.startswith('Name'):
+                self.deck_name = line.split(' ', 1)[1].strip()
+            elif line.startswith('Deck'):
+                deck_list_started = True
+            elif deck_list_started and line:
+                # Adicionar as cartas ao deck
+                quantity, card_name = line.split(' ', 1)
+                quantity = int(quantity)
+                
+                # Buscar carta pelo nome usando a API da mtgsdk
+                cards = Card.where(name=card_name.strip()).all()
+                if not cards:
+                    raise ValueError(f"Card '{card_name.strip()}' not found in the database.")
+                
+                # Assumindo que o primeiro resultado é o correto
+                card = cards[0]
+                for _ in range(quantity):
+                    self.add_card(card)
 
     def determine_land_color(self, card):
         """
@@ -47,18 +87,15 @@ class Deck:
         if self.allowed_sets and card.set not in [set_.code for set_ in self.allowed_sets]:
             raise ValueError(f"Card from set {card.set} is not allowed in this deck.")
         
-        # Verificar cores apenas se card.colors não for None
         if self.allowed_colors and card.colors is not None:
             if not set(card.colors).issubset(self.allowed_colors):
                 raise ValueError(f"Card color(s) {card.colors} are not allowed in this deck.")
 
-        # Verificar exceções de quantidade de cópias
         if 'Land' in card.type or card.name in self.exception_cards:
-            max_allowed = float('inf')  # Permite infinitas cópias para terrenos ou cartas de exceção
+            max_allowed = float('inf')
         else:
             max_allowed = self.max_cards_per_deck
         
-        # Contagem baseada no nome do card (e não na instância do objeto)
         card_count = sum(1 for c in self.cards if c.name == card.name)
         if card_count >= max_allowed:
             raise ValueError(f"Cannot have more than {max_allowed} copies of {card.name} in the deck.")
@@ -109,7 +146,7 @@ class Deck:
             if not cards:
                 raise ValueError(f"Card '{card_name}' not found in the database.")
             
-            card = cards[0]  # Assume que o primeiro card encontrado é o correto
+            card = cards[0]
             for _ in range(quantity):
                 self.add_card(card)
 
@@ -127,19 +164,40 @@ class Deck:
         colors_in_deck = self.colors_in_deck()
         land_colors = self.lands_matching_colors()
         
-        # Verifica se o número de cartas está dentro dos limites
         if not (self.min_cards <= len(self.cards) <= self.max_cards):
             return False
         
-        # Verifica se o número de terrenos está dentro dos limites
         if not (self.min_lands <= num_lands <= self.max_lands):
             return False
         
-        # Verifica se todas as cores no deck têm um terreno correspondente
         if not colors_in_deck.issubset(land_colors):
             return False
 
         return True
+
+    def determine_deck_colors_from_name(self, deck_name: str, df_colors: pd.DataFrame) -> Union[Dict[str, int], str]:
+        """
+        Determines the colors of the deck based on its name.
+
+        Args:
+            deck_name (str): The name of the deck, which can include color abbreviations or full color names.
+            df_colors (pd.DataFrame): DataFrame containing color combinations and their binary values.
+
+        Returns:
+            Union[Dict[str, int], str]: A dictionary with the colors and their binary values (1 for present, 0 for absent) 
+                                        or an error message if the color combination is not found.
+        """
+        deck_letters = ''.join([char for char in deck_name if char.isupper()])
+        deck_letters_sorted = ''.join(sorted(deck_letters))
+
+        if deck_letters_sorted in df_colors.index:
+            return df_colors.loc[deck_letters_sorted].to_dict()
+
+        for full_name in df_colors.index:
+            if full_name.lower() in deck_name.lower():
+                return df_colors.loc[full_name].to_dict()
+
+        return "Combinação de cores não encontrada para o deck"
 
     def __len__(self):
         """
