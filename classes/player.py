@@ -1,6 +1,8 @@
+from mtgsdk import Card
 from classes.hand import Hand
 from classes.library import Library
 from classes.deck import Deck
+from classes.plays import Plays
 
 class Player:
     """
@@ -18,8 +20,12 @@ class Player:
         The library (deck) of the player, representing the remaining cards in the deck.
     mulligan_count : int
         The number of mulligans the player has taken.
-    turno : int
+    turn : int
         The current turn number for the player.
+    lands_played : int
+        The number of lands played by the player in the current turn.
+    extra_lands_allowed : int
+        The extra number of lands a player can play per turn due to special effects.
     """
 
     def __init__(self, name: str, deck: Deck):
@@ -45,6 +51,8 @@ class Player:
         self.deck = deck  # Armazena o deck original
         self.mulligan_count = 0
         self.turn = 0  # Inicializa o turno como 0
+        self.lands_played = 0  # Inicializa os terrenos jogados no turno como 0
+        self.extra_lands_allowed = 0  # Inicializa os terrenos extras permitidos como 0
         self.hand = Hand()  # A mão é criada vazia
         self.library = Library(deck)  # A biblioteca é criada a partir do deck
 
@@ -85,6 +93,7 @@ class Player:
         end of the turn, they must discard a card. The turn number is incremented.
         """
         self.turn += 1  # Incrementa o turno
+        self.lands_played = 0  # Reseta os terrenos jogados no turno
         drawn_card = self.library.draw_card()  # Retira uma carta da library
         self.hand.add_card(drawn_card)  # Adiciona a carta à mão
         
@@ -92,16 +101,73 @@ class Player:
         if len(self.hand.cards) > 7:
             self.discard_card()
 
-    def discard_card(self):
+    def allow_extra_land(self, extra_lands: int):
         """
-        Discards a card from the player's hand if they have more than 7 cards.
-        The discarded card is returned to the library.
+        Permite que o jogador jogue terrenos extras neste turno.
+        
+        Parameters:
+        -----------
+        extra_lands : int
+            The number of extra lands the player is allowed to play this turn.
+        """
+        self.extra_lands_allowed += extra_lands
+
+    def total_lands_allowed(self) -> int:
+        """
+        Retorna o número total de terrenos que o jogador pode jogar no turno atual,
+        incluindo terrenos extras permitidos.
+        """
+        return 1 + self.extra_lands_allowed
+
+    def play_land(self, card: Card, tracker: 'Plays') -> bool:
+        """
+        Tenta jogar uma carta de terreno. Permite jogar mais de um terreno se
+        o jogador tiver permissão extra. Registra o resultado no PlaysTracker.
+        Retorna True se a carta foi jogada, False se não foi.
+        """
+        if self.lands_played < (1 + self.extra_lands_allowed):
+            if self.hand.play_land(card, tracker, self):
+                print(f"{self.name} jogou o terreno {card.name}.")
+                return True
+        print(f"{self.name} não pode jogar o terreno {card.name}.")
+        return False
+
+    def play_spell(self, tracker: 'Plays', available_mana: int) -> bool:
+        """
+        Tenta jogar uma ou mais mágicas (spells) otimizando o uso de mana.
+        Verifica se há mana suficiente e tenta usar o máximo de mana possível.
+        Registra o resultado no PlaysTracker.
+        Retorna True se alguma carta foi jogada, False se nenhuma carta foi jogada.
+        """
+        if self.hand.play_spell(tracker, available_mana):
+            print(f"{self.name} jogou uma ou mais mágicas usando {available_mana} mana.")
+            return True
+        print(f"{self.name} não conseguiu jogar nenhuma mágica.")
+        return False
+
+    def discard_card(self, tracker: 'Plays', return_to_library=False):
+        """
+        Discards a card from the player's hand. If `return_to_library` is True, the card is returned
+        to the library (typically during a mulligan). Otherwise, the card is simply discarded, and 
+        the number of not_played is incremented in the tracker.
+        
+        Parameters:
+        -----------
+        tracker : Plays
+            The tracker that records the number of successful and unsuccessful plays.
+        return_to_library : bool
+            Whether the card should be returned to the library (e.g., during a mulligan).
         """
         # Por simplicidade, vamos descartar a carta com o maior custo de mana
         card_to_discard = max(self.hand.cards, key=lambda c: c.cmc)
         self.hand.remove_card(card_to_discard)
-        self.library.return_card(card_to_discard)
-        print(f"{self.name} descarta {card_to_discard.name}.")
+        
+        if return_to_library:
+            self.library.return_card(card_to_discard)
+            print(f"{self.name} retorna {card_to_discard.name} para a library.")
+        else:
+            tracker.add_not_played()
+            print(f"{self.name} descarta {card_to_discard.name}.")
 
     def __repr__(self):
         """

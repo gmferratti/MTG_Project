@@ -1,7 +1,9 @@
 import unittest
 from mtgsdk import Card, Set
-from deck import Deck
-from hand import Hand
+from classes.deck import Deck
+from classes.hand import Hand
+from classes.plays import Plays
+from classes.player import Player
 
 class TestHand(unittest.TestCase):
     def setUp(self):
@@ -21,24 +23,60 @@ class TestHand(unittest.TestCase):
         for _ in range(32):
             self.deck.add_card(relentless_rats)
         
-        self.hand = Hand(self.deck)
+        self.hand = Hand()  # Inicializa a mão vazia
+        self.player = Player(name="Test Player", deck=self.deck)  # Inicializa o jogador
+        self.tracker = Plays()  # Inicializa o tracker de jogadas
 
-    def test_draw_seven_cards(self):
-        # Testa se o método draw_cards sorteia 7 cartas corretamente
-        self.hand.draw_cards(7)
-        self.assertEqual(len(self.hand.cards), 7)
-        self.assertEqual(len(self.deck), 53)  # O deck deve ter 53 cartas restantes
+    def test_add_and_remove_card(self):
+        # Testa a adição e remoção de cartas da mão
+        card = Card.where(name='Black Lotus').all()[0]
+        self.hand.add_card(card)
+        self.assertIn(card, self.hand.cards)
+        self.hand.remove_card(card)
+        self.assertNotIn(card, self.hand.cards)
 
-    def test_draw_insufficient_cards(self):
-        # Testa se o método draw_cards levanta um erro quando não há cartas suficientes no deck
-        self.deck.cards = self.deck.cards[:5]  # Reduz o número de cartas no deck para 5
-        with self.assertRaises(ValueError):
-            self.hand.draw_cards(7)
+    def test_play_land(self):
+        # Testa se é possível jogar um terreno corretamente
+        swamp = Card.where(name='Swamp').all()[0]
+        self.hand.add_card(swamp)
+        self.assertTrue(self.hand.play_land(swamp, self.tracker, self.player))
+        self.assertEqual(self.player.lands_played, 1)
+        self.assertNotIn(swamp, self.hand.cards)
 
-    def test_hand_repr(self):
-        # Testa a representação em string da mão
-        self.hand.draw_cards(7)
-        self.assertIn("Hand(7 cards:", repr(self.hand))
+    def test_play_land_with_extra_lands(self):
+        # Testa se é possível jogar terrenos extras se permitido
+        swamp = Card.where(name='Swamp').all()[0]
+        forest = Card.where(name='Forest').all()[0]
+        self.hand.add_card(swamp)
+        self.hand.add_card(forest)
+        
+        self.assertTrue(self.hand.play_land(swamp, self.tracker, self.player))
+        self.player.allow_extra_land(1)  # Permite jogar um terreno extra
+        self.assertTrue(self.hand.play_land(forest, self.tracker, self.player))
+        self.assertEqual(self.player.lands_played, 2)
+        self.assertNotIn(swamp, self.hand.cards)
+        self.assertNotIn(forest, self.hand.cards)
+
+    def test_play_spell(self):
+        # Testa se uma mágica pode ser jogada corretamente
+        black_lotus = Card.where(name='Black Lotus').all()[0]  # Custo de mana 0
+        relentless_rats = Card.where(name='Relentless Rats').all()[0]  # Custo de mana 3
+        
+        self.hand.add_card(black_lotus)
+        self.hand.add_card(relentless_rats)
+        
+        self.assertTrue(self.hand.play_spell(self.tracker, available_mana=3))
+        self.assertNotIn(black_lotus, self.hand.cards)
+        self.assertNotIn(relentless_rats, self.hand.cards)
+
+    def test_play_spell_with_insufficient_mana(self):
+        # Testa se nenhuma mágica é jogada quando há mana insuficiente
+        relentless_rats = Card.where(name='Relentless Rats').all()[0]  # Custo de mana 3
+        
+        self.hand.add_card(relentless_rats)
+        
+        self.assertFalse(self.hand.play_spell(self.tracker, available_mana=2))
+        self.assertIn(relentless_rats, self.hand.cards)
 
 if __name__ == '__main__':
     unittest.main()

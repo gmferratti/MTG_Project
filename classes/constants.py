@@ -66,7 +66,6 @@ mtg_formats = {
     }
 }
 
-
 land_colors = {
     'Forest': {'G'},  # Green
     'Island': {'U'},  # Blue

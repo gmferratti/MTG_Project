@@ -1,4 +1,5 @@
 from mtgsdk import Card
+from classes.plays import Plays
 
 class Hand:
     """
@@ -10,34 +11,68 @@ class Hand:
         The cards currently in the player's hand.
     """
 
+    MAX_HAND_SIZE = 7
+    MAX_LANDS_PER_TURN = 1
+
     def __init__(self):
-        """
-        Constructs all the necessary attributes for the Hand object.
-        """
         self.cards = []
 
     def add_card(self, card: Card):
-        """
-        Adds a card to the hand.
-        
-        Parameters:
-        -----------
-        card : Card
-            The card to be added to the hand.
-        """
+        """Adiciona uma carta à mão."""
         self.cards.append(card)
 
     def remove_card(self, card: Card):
-        """
-        Removes a card from the hand.
-        
-        Parameters:
-        -----------
-        card : Card
-            The card to be removed from the hand.
-        """
+        """Remove uma carta da mão."""
         self.cards.remove(card)
 
+    def play_land(self, card: Card, tracker: 'Plays', player: 'Player') -> bool:
+        """
+        Tenta jogar uma carta de terreno. Permite jogar mais de um terreno se
+        o jogador tiver permissão extra. Registra o resultado no PlaysTracker.
+        Retorna True se a carta foi jogada, False se não foi.
+        """
+        if 'Land' in card.type and player.lands_played < player.total_lands_allowed():
+            self.remove_card(card)
+            tracker.add_played()
+            player.lands_played += 1
+            return True
+        else:
+            tracker.add_not_played()
+            return False
+
+    def play_spell(self, tracker: 'Plays', available_mana: int) -> bool:
+        """
+        Tenta jogar uma ou mais mágicas (spells) otimizando o uso de mana.
+        Verifica se há mana suficiente e tenta usar o máximo de mana possível.
+        Registra o resultado no PlaysTracker.
+        Retorna True se alguma carta foi jogada, False se nenhuma carta foi jogada.
+        """
+        # Ordena as cartas por custo de mana, do maior para o menor
+        spells = [card for card in self.cards if 'Land' not in card.type]
+        spells.sort(key=lambda card: card.cmc, reverse=True)
+        
+        # Tenta jogar a melhor combinação de cartas
+        mana_used = 0
+        cards_to_play = []
+        for spell in spells:
+            if mana_used + spell.cmc <= available_mana:
+                cards_to_play.append(spell)
+                mana_used += spell.cmc
+
+        # Se alguma carta puder ser jogada
+        if cards_to_play:
+            for card in cards_to_play:
+                self.remove_card(card)
+                tracker.add_played()
+            return True
+        else:
+            tracker.add_not_played()
+            return False
+
+    def is_above_hand_limit(self) -> bool:
+        """Verifica se o número de cartas na mão está acima do limite permitido."""
+        return len(self.cards) > self.MAX_HAND_SIZE
+    
     def is_balanced(self) -> bool:
         """
         Checks if the hand has a balanced number of lands (2 to 4 lands).
@@ -73,23 +108,9 @@ class Hand:
         return any(card.cmc <= 2 for card in playable_spells)
 
     def __len__(self):
-        """
-        Returns the number of cards in the hand.
-        
-        Returns:
-        --------
-        int
-            The number of cards in the hand.
-        """
+        """Retorna o número de cartas na mão."""
         return len(self.cards)
 
     def __repr__(self):
-        """
-        Returns a string representation of the hand.
-        
-        Returns:
-        --------
-        str
-            A string representation showing the cards in the hand.
-        """
+        """Retorna uma representação em string da mão."""
         return f"Hand({len(self.cards)} cards: {', '.join([card.name for card in self.cards])})"
