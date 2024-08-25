@@ -1,7 +1,7 @@
 import unittest
 from mtgsdk import Card, Set
-from deck import Deck
-from player import Player
+from classes.deck import Deck
+from classes.player import Player
 
 class TestPlayer(unittest.TestCase):
     def setUp(self):
@@ -25,13 +25,13 @@ class TestPlayer(unittest.TestCase):
 
     def test_initial_draw(self):
         # Testa se o jogador saca 7 cartas corretamente no início do jogo
-        self.player.hand.draw_cards()
+        self.player.hand.draw_cards(self.player.library)  # Passe a biblioteca do jogador como argumento
         self.assertEqual(len(self.player.hand.cards), 7)
-        self.assertEqual(len(self.deck), 53)  # O deck deve ter 53 cartas restantes
+        self.assertEqual(len(self.player.library), 53)  # O deck deve ter 53 cartas restantes
 
     def test_mulligan(self):
         # Testa se o jogador faz mulligan corretamente
-        self.player.hand.draw_cards()  # Desenha 7 cartas iniciais
+        self.player.hand.draw_cards(self.player.library)  # Passe a biblioteca do jogador como argumento
         self.player.mulligan()  # Deve reduzir para 6 cartas
         self.assertEqual(len(self.player.hand.cards), 6)
         self.player.mulligan()  # Deve reduzir para 5 cartas
@@ -39,7 +39,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_mulligan_to_zero(self):
         # Testa se o jogador pode continuar fazendo mulligans até 0 cartas
-        self.player.hand.draw_cards()  # Desenha 7 cartas iniciais
+        self.player.hand.draw_cards(self.player.library)  # Passe a biblioteca do jogador como argumento
         for _ in range(7):  # Fazer mulligan 7 vezes
             self.player.mulligan()
         self.assertEqual(len(self.player.hand.cards), 0)

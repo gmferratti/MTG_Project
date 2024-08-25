@@ -1,5 +1,6 @@
 from mtgsdk import Card
 from classes.plays import Plays
+from classes.library import Library
 
 class Hand:
     """
@@ -24,6 +25,20 @@ class Hand:
     def remove_card(self, card: Card):
         """Remove uma carta da mão."""
         self.cards.remove(card)
+
+    def draw_cards(self, library: 'Library', num_cards: int = 7):
+        """
+        Draws a specified number of cards from the library into the hand.
+        
+        Parameters:
+        -----------
+        library : Library
+            The library (deck) to draw cards from.
+        num_cards : int
+            The number of cards to draw. Defaults to 7.
+        """
+        for _ in range(min(num_cards, len(library))):
+            self.add_card(library.draw_card())
 
     def play_land(self, card: Card, tracker: 'Plays', player: 'Player') -> bool:
         """

@@ -1,5 +1,6 @@
 test:
-	python -m unittest tests.classes.test_deck
+	python -m unittest discover -s tests
+
 
 clean:
 	rm -rf __pycache__
