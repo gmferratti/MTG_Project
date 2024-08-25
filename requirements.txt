@@ -2,3 +2,4 @@ mtgsdk
 pandas
 sklearn
 unittest
+vcrpy

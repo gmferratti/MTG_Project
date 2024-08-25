@@ -2,6 +2,10 @@ from mtgsdk import Card
 from classes.plays import Plays
 from classes.library import Library
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from classes.player import Player
+
 class Hand:
     """
     A class to represent a hand of cards for a player.

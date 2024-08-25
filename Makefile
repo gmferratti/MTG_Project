@@ -1,5 +1,5 @@
 test:
-	python -m unittest discover -s tests
+	cd tests && python -m unittest discover -s tests
 
 
 clean:
