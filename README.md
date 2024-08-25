@@ -1,8 +1,8 @@
-# Magic Curve Simulator
+# Magic Curve ML
 
-API para extração dos dados do card game Magic: The Gathering Arena.
-Tais dados alimentarão uma base de dados que, por sua vez, alimentarão
-um modelo de Machine Learning de cálculo de probabilidade de vitórias.
+Este projeto integra uma API para extração dos dados de cartas e sets do card game Magic: The Gathering;
+Tais dados alimentarão um simulador de jogadas que, por sua vez, alimentará um modelo de Machine Learning 
+que calculará a probabilidade do player curvar (maximizar suas jogadas entre turnos).
 
 ## Integrantes
 
