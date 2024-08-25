@@ -1,6 +1,6 @@
 import unittest
 from mtgsdk import Card, Set
-from deck.deck import Deck  # Certifique-se de que deck.py está no mesmo diretório
+from deck import Deck  # Certifique-se de que deck.py está no mesmo diretório
 
 class TestDeck(unittest.TestCase):
     """

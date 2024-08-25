@@ -1,6 +1,6 @@
 import unittest
 from mtgsdk import Card, Set
-from deck.deck import Deck
+from deck import Deck
 from player import Player
 
 class TestPlayer(unittest.TestCase):

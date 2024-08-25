@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import Dict, Union
 from mtgsdk import Card
-
+from concurrent.futures import ThreadPoolExecutor
 
 class Deck:
     """
@@ -40,6 +40,9 @@ class Deck:
 
         # Extrair o nome do deck
         deck_list_started = False
+        card_names = []
+        card_quantities = {}
+
         for line in lines:
             line = line.strip()
             if line.startswith('Name'):
@@ -47,19 +50,43 @@ class Deck:
             elif line.startswith('Deck'):
                 deck_list_started = True
             elif deck_list_started and line:
-                # Adicionar as cartas ao deck
+                # Adicionar os nomes e quantidades das cartas
                 quantity, card_name = line.split(' ', 1)
                 quantity = int(quantity)
+                card_name = card_name.strip()
                 
-                # Buscar carta pelo nome usando a API da mtgsdk
-                cards = Card.where(name=card_name.strip()).all()
-                if not cards:
-                    raise ValueError(f"Card '{card_name.strip()}' not found in the database.")
-                
-                # Assumindo que o primeiro resultado é o correto
-                card = cards[0]
-                for _ in range(quantity):
-                    self.add_card(card)
+                # Armazenar os nomes e quantidades
+                if card_name in card_quantities:
+                    card_quantities[card_name] += quantity
+                else:
+                    card_quantities[card_name] = quantity
+                    card_names.append(card_name)
+        
+        # Função para buscar uma carta específica
+        def fetch_card(card_name):
+            cards = Card.where(name=card_name).all()
+            if not cards:
+                raise ValueError(f"Card '{card_name}' not found in the database.")
+            return cards[0]
+
+        # Usar ThreadPoolExecutor para buscar cartas em paralelo
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_card_name = {executor.submit(fetch_card, name): name for name in card_names}
+            cards_dict = {}
+            for future in future_to_card_name:
+                card_name = future_to_card_name[future]
+                try:
+                    card = future.result()
+                    cards_dict[card_name] = card
+                except Exception as exc:
+                    raise ValueError(f"Card '{card_name}' generated an exception: {exc}")
+
+        # Adicionar as cartas ao deck
+        for card_name, quantity in card_quantities.items():
+            card = cards_dict[card_name]
+            for _ in range(quantity):
+                self.add_card(card)
+
 
     def determine_land_color(self, card):
         """

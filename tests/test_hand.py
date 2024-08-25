@@ -1,7 +1,7 @@
 import unittest
 from mtgsdk import Card, Set
-from deck.deck import Deck
-from hand import Hand
+from classes.deck import Deck
+from classes.hand import Hand
 
 class TestHand(unittest.TestCase):
     def setUp(self):
