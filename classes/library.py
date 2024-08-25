@@ -1,5 +1,5 @@
 from mtgsdk import Card
-from deck import Deck
+from classes.deck import Deck
 
 class Library:
     """

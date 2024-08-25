@@ -2,24 +2,36 @@ import pandas as pd
 from typing import Dict, Union
 from mtgsdk import Card
 from concurrent.futures import ThreadPoolExecutor
+from classes.constants import mtg_formats, land_colors
 
 class Deck:
     """
-    A class to represent a deck of Magic: The Gathering cards.
+    A class to represent a valid deck of Magic: The Gathering cards.
     """
 
-    def __init__(self, allowed_sets=None, allowed_colors=None, min_cards=60, max_cards=80, min_lands=18, max_lands=30, language="EN", max_cards_per_deck=4, exception_cards=None):
+    def __init__(self, 
+                 format_name="Standard",  # Novo parâmetro para definir o formato
+                 allowed_sets=None, 
+                 allowed_colors=None, 
+                 language="EN", 
+                 exception_cards=None):
         """
         Constructs all the necessary attributes for the Deck object.
         """
+        # Verifica se o formato está no dicionário mtg_formats
+        if format_name not in mtg_formats:
+            raise ValueError(f"Formato '{format_name}' não é válido. Escolha entre: {', '.join(mtg_formats.keys())}")
+
+        format_info = mtg_formats[format_name]
+
         self.allowed_sets = allowed_sets
         self.allowed_colors = allowed_colors
-        self.min_cards = min_cards
-        self.max_cards = max_cards
-        self.min_lands = min_lands
-        self.max_lands = max_lands
+        self.min_cards = format_info["Deck Size"]["Minimum"]
+        self.max_cards = format_info["Deck Size"]["Maximum"] if format_info["Deck Size"]["Maximum"] != "No limit" else None
+        self.min_lands = format_info.get("Min Lands", 16)  # Valor padrão de 16 se não especificado
+        self.max_lands = format_info.get("Max Lands", 40)  # Valor padrão de 40 se não especificado
         self.language = language
-        self.max_cards_per_deck = max_cards_per_deck
+        self.max_copies_per_card = format_info["Max Copies per Card"]
         self.exception_cards = exception_cards or []
 
         self.cards = []
@@ -87,18 +99,10 @@ class Deck:
             for _ in range(quantity):
                 self.add_card(card)
 
-
     def determine_land_color(self, card):
         """
         Determines the color associated with a land card based on its name.
         """
-        land_colors = {
-            'Forest': {'G'},  # Green
-            'Island': {'U'},  # Blue
-            'Mountain': {'R'},  # Red
-            'Plains': {'W'},  # White
-            'Swamp': {'B'}   # Black
-        }
         for land_name, colors in land_colors.items():
             if land_name in card.name:
                 return colors
@@ -108,20 +112,26 @@ class Deck:
         """
         Adds a card to the deck if it meets the deck's requirements.
         """
-        if len(self.cards) >= self.max_cards:
+        if self.max_cards and len(self.cards) >= self.max_cards:
             raise ValueError("Deck already has the maximum number of cards.")
         
         if self.allowed_sets and card.set not in [set_.code for set_ in self.allowed_sets]:
             raise ValueError(f"Card from set {card.set} is not allowed in this deck.")
         
         if self.allowed_colors and card.colors is not None:
-            if not set(card.colors).issubset(self.allowed_colors):
-                raise ValueError(f"Card color(s) {card.colors} are not allowed in this deck.")
+            if 'Artifact' not in card.type:  # Ignora restrição de cores para artefatos
+                if not set(card.colors).issubset(self.allowed_colors):
+                    raise ValueError(f"Card color(s) {card.colors} are not allowed in this deck.")
 
-        if 'Land' in card.type or card.name in self.exception_cards:
+        if 'Land' in card.type:
+            num_lands = self.count_lands()
+            if num_lands >= self.max_lands:
+                raise ValueError(f"Cannot add more than {self.max_lands} lands to the deck.")
             max_allowed = float('inf')
+        elif card.name in self.exception_cards:
+            max_allowed = float('inf')  # Permite exceções para cartas como "Relentless Rats"
         else:
-            max_allowed = self.max_cards_per_deck
+            max_allowed = self.max_copies_per_card
         
         card_count = sum(1 for c in self.cards if c.name == card.name)
         if card_count >= max_allowed:
@@ -191,7 +201,7 @@ class Deck:
         colors_in_deck = self.colors_in_deck()
         land_colors = self.lands_matching_colors()
         
-        if not (self.min_cards <= len(self.cards) <= self.max_cards):
+        if not (self.min_cards <= len(self.cards) <= (self.max_cards or float('inf'))):
             return False
         
         if not (self.min_lands <= num_lands <= self.max_lands):

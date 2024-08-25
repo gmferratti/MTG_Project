@@ -1,3 +1,80 @@
+""" General knowledge of Magic the Gathering translated into Python constants. """
+
+mtg_formats = {
+    "Standard": {
+        "Deck Size": {
+            "Minimum": 60,
+            "Maximum": "No limit"
+        },
+        "Max Copies per Card": 4,
+        "Min Lands": 20,
+        "Max Lands": 26
+    },
+    "Commander": {
+        "Deck Size": {
+            "Minimum": 100,
+            "Maximum": 100
+        },
+        "Max Copies per Card": 1,
+        "Min Lands": 35,
+        "Max Lands": 40
+    },
+    "Modern": {
+        "Deck Size": {
+            "Minimum": 60,
+            "Maximum": "No limit"
+        },
+        "Max Copies per Card": 4,
+        "Min Lands": 20,
+        "Max Lands": 26
+    },
+    "Legacy": {
+        "Deck Size": {
+            "Minimum": 60,
+            "Maximum": "No limit"
+        },
+        "Max Copies per Card": 4,
+        "Min Lands": 20,
+        "Max Lands": 26
+    },
+    "Vintage": {
+        "Deck Size": {
+            "Minimum": 60,
+            "Maximum": "No limit"
+        },
+        "Max Copies per Card": 4,
+        "Min Lands": 20,
+        "Max Lands": 26
+    },
+    "Draft": {
+        "Deck Size": {
+            "Minimum": 40,
+            "Maximum": "No limit"
+        },
+        "Max Copies per Card": "No limit",
+        "Min Lands": 16,
+        "Max Lands": 18
+    },
+    "Sealed": {
+        "Deck Size": {
+            "Minimum": 40,
+            "Maximum": "No limit"
+        },
+        "Max Copies per Card": "No limit",
+        "Min Lands": 16,
+        "Max Lands": 18
+    }
+}
+
+
+land_colors = {
+    'Forest': {'G'},  # Green
+    'Island': {'U'},  # Blue
+    'Mountain': {'R'},  # Red
+    'Plains': {'W'},  # White
+    'Swamp': {'B'}   # Black
+}
+
 color_combinations = {
     "Monowhite": {"W": 1, "U": 0, "B": 0, "R": 0, "G": 0},  # W
     "Monoblue": {"W": 0, "U": 1, "B": 0, "R": 0, "G": 0},   # U
@@ -129,3 +206,4 @@ color_combinations_abbreviated = {
     "GBU": {"W": 0, "U": 1, "B": 1, "R": 0, "G": 1},
     "GUB": {"W": 0, "U": 1, "B": 1, "R": 0, "G": 1},  # Sultai
 }
+

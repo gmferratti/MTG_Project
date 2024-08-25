@@ -1,6 +1,6 @@
-from hand import Hand
-from library import Library
-from deck import Deck
+from classes.hand import Hand
+from classes.library import Library
+from classes.deck import Deck
 
 class Player:
     """
@@ -44,7 +44,7 @@ class Player:
         self.name = name
         self.deck = deck  # Armazena o deck original
         self.mulligan_count = 0
-        self.turno = 0  # Inicializa o turno como 0
+        self.turn = 0  # Inicializa o turno como 0
         self.hand = Hand()  # A mão é criada vazia
         self.library = Library(deck)  # A biblioteca é criada a partir do deck
 
@@ -84,7 +84,7 @@ class Player:
         and adds it to their hand. If the player has more than 7 cards in hand at the
         end of the turn, they must discard a card. The turn number is incremented.
         """
-        self.turno += 1  # Incrementa o turno
+        self.turn += 1  # Incrementa o turno
         drawn_card = self.library.draw_card()  # Retira uma carta da library
         self.hand.add_card(drawn_card)  # Adiciona a carta à mão
         
@@ -112,4 +112,4 @@ class Player:
         str
             A string representation showing the player's name, hand, library, and current turn.
         """
-        return f"Player({self.name}, Turn: {self.turno}, Hand: {self.hand}, Library: {self.library})"
+        return f"Player({self.name}, Turn: {self.turn}, Hand: {self.hand}, Library: {self.library})"
