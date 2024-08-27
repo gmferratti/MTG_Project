@@ -2,7 +2,10 @@ import pandas as pd
 from typing import Dict, Union
 from mtgsdk import Card
 from concurrent.futures import ThreadPoolExecutor
-from classes.constants import mtg_formats, land_colors
+from classes.constants import (mtg_formats, 
+                               land_colors, 
+                               color_combinations, 
+                               color_combinations_abbreviated)
 
 class Deck:
     """
@@ -10,7 +13,8 @@ class Deck:
     """
 
     def __init__(self, 
-                 format_name="Standard",  # Novo parâmetro para definir o formato
+                 format_name="Standard",
+                 deck_name=None,
                  allowed_sets=None, 
                  allowed_colors=None, 
                  language="EN", 
@@ -22,20 +26,20 @@ class Deck:
         if format_name not in mtg_formats:
             raise ValueError(f"Formato '{format_name}' não é válido. Escolha entre: {', '.join(mtg_formats.keys())}")
 
+        # Choose a format from the mtg_formats dictionary
         format_info = mtg_formats[format_name]
 
+        self.deck_name = deck_name
         self.allowed_sets = allowed_sets
         self.allowed_colors = allowed_colors
         self.min_cards = format_info["Deck Size"]["Minimum"]
         self.max_cards = format_info["Deck Size"]["Maximum"] if format_info["Deck Size"]["Maximum"] != "No limit" else None
-        self.min_lands = format_info.get("Min Lands", 16)  # Valor padrão de 16 se não especificado
-        self.max_lands = format_info.get("Max Lands", 40)  # Valor padrão de 40 se não especificado
+        self.min_lands = format_info.get("Min Lands", 16)
+        self.max_lands = format_info.get("Max Lands", 40)
         self.language = language
         self.max_copies_per_card = format_info["Max Copies per Card"]
         self.exception_cards = exception_cards or []
-
         self.cards = []
-        self.deck_name = None  # Atributo para armazenar o nome do deck
 
     def load_deck_from_txt(self, file_path: str):
         """
@@ -101,7 +105,7 @@ class Deck:
 
     def determine_land_color(self, card):
         """
-        Determines the color associated with a land card based on its name.
+        Determines the color associated with a basic land card based on its name.
         """
         for land_name, colors in land_colors.items():
             if land_name in card.name:
@@ -212,18 +216,21 @@ class Deck:
 
         return True
 
-    def determine_deck_colors_from_name(self, deck_name: str, df_colors: pd.DataFrame) -> Union[Dict[str, int], str]:
+    def determine_deck_colors_from_name(self) -> Union[Dict[str, int], str]:
         """
         Determines the colors of the deck based on its name.
-
-        Args:
-            deck_name (str): The name of the deck, which can include color abbreviations or full color names.
-            df_colors (pd.DataFrame): DataFrame containing color combinations and their binary values.
 
         Returns:
             Union[Dict[str, int], str]: A dictionary with the colors and their binary values (1 for present, 0 for absent) 
                                         or an error message if the color combination is not found.
         """
+        deck_name = self.deck_name
+        
+        # Building up the colors dataframe
+        df_cc = pd.DataFrame.from_dict(color_combinations, orient='index')
+        df_cca = pd.DataFrame.from_dict(color_combinations_abbreviated, orient='index')
+        df_colors = pd.concat([df_cc, df_cca], axis=0)
+
         deck_letters = ''.join([char for char in deck_name if char.isupper()])
         deck_letters_sorted = ''.join(sorted(deck_letters))
 

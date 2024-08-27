@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from classes.player import Player
 
-class Hand:
+class Hand():
     """
     A class to represent a hand of cards for a player.
     
@@ -21,16 +21,17 @@ class Hand:
 
     def __init__(self):
         self.cards = []
+        self.hand_size = 0
 
     def add_card(self, card: Card):
-        """Adiciona uma carta à mão."""
+        """Adiciona uma carta específica à mão."""
         self.cards.append(card)
 
     def remove_card(self, card: Card):
-        """Remove uma carta da mão."""
+        """Remove uma carta específica da mão."""
         self.cards.remove(card)
 
-    def draw_cards(self, library: 'Library', num_cards: int = 7):
+    def draw(self, library: 'Library', num_cards: int = 1):
         """
         Draws a specified number of cards from the library into the hand.
         
@@ -39,57 +40,20 @@ class Hand:
         library : Library
             The library (deck) to draw cards from.
         num_cards : int
-            The number of cards to draw. Defaults to 7.
+            The number of cards to draw. Defaults to 1.
         """
         for _ in range(min(num_cards, len(library))):
-            self.add_card(library.draw_card())
-
-    # Percebi agora que tanto player quanto hand tem play_land e play_spell
-    # Revisar a relação desses caras e unificar os métodos.
+            drawn_card = library.draw_card()
+            self.cards.append(drawn_card)
     
-    def play_land(self, card: Card, tracker: 'Plays', player: 'Player') -> bool:
+    def organize(self):
         """
-        Tenta jogar uma carta de terreno. Permite jogar mais de um terreno se
-        o jogador tiver permissão extra. Registra o resultado no PlaysTracker.
-        Retorna True se a carta foi jogada, False se não foi.
+        Organizes the hand by placing land cards at the beginning of the list
+        and other cards at the end.
         """
-        if 'Land' in card.type and player.lands_played < player.total_lands_allowed():
-            self.remove_card(card)
-            tracker.add_played()
-            player.lands_played += 1
-            return True
-        else:
-            tracker.add_not_played()
-            return False
-
-    def play_spell(self, tracker: 'Plays', available_mana: int) -> bool:
-        """
-        Tenta jogar uma ou mais mágicas (spells) otimizando o uso de mana.
-        Verifica se há mana suficiente e tenta usar o máximo de mana possível.
-        Registra o resultado no PlaysTracker.
-        Retorna True se alguma carta foi jogada, False se nenhuma carta foi jogada.
-        """
-        # Ordena as cartas por custo de mana, do maior para o menor
-        spells = [card for card in self.cards if 'Land' not in card.type]
-        spells.sort(key=lambda card: card.cmc, reverse=True)
-        
-        # Tenta jogar a melhor combinação de cartas
-        mana_used = 0
-        cards_to_play = []
-        for spell in spells:
-            if mana_used + spell.cmc <= available_mana:
-                cards_to_play.append(spell)
-                mana_used += spell.cmc
-
-        # Se alguma carta puder ser jogada
-        if cards_to_play:
-            for card in cards_to_play:
-                self.remove_card(card)
-                tracker.add_played()
-            return True
-        else:
-            tracker.add_not_played()
-            return False
+        lands = [card for card in self.cards if 'Land' in card.type]
+        non_lands = [card for card in self.cards if 'Land' not in card.type]
+        self.cards = lands + non_lands
 
     def is_above_hand_limit(self) -> bool:
         """Verifica se o número de cartas na mão está acima do limite permitido."""

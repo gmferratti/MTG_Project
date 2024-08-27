@@ -25,7 +25,7 @@ class TestHand(unittest.TestCase):
 
     def test_draw_seven_cards(self):
         # Testa se o método draw_cards sorteia 7 cartas corretamente
-        self.hand.draw_cards(7)
+        self.hand.draw(7)
         self.assertEqual(len(self.hand.cards), 7)
         self.assertEqual(len(self.deck), 53)  # O deck deve ter 53 cartas restantes
 
@@ -33,11 +33,11 @@ class TestHand(unittest.TestCase):
         # Testa se o método draw_cards levanta um erro quando não há cartas suficientes no deck
         self.deck.cards = self.deck.cards[:5]  # Reduz o número de cartas no deck para 5
         with self.assertRaises(ValueError):
-            self.hand.draw_cards(7)
+            self.hand.draw(7)
 
     def test_hand_repr(self):
         # Testa a representação em string da mão
-        self.hand.draw_cards(7)
+        self.hand.draw(7)
         self.assertIn("Hand(7 cards:", repr(self.hand))
 
 if __name__ == '__main__':

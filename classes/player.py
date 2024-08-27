@@ -12,12 +12,12 @@ class Player:
     -----------
     name : str
         The name of the player.
-    deck : Deck
-        The original deck used by the player, from which the library is created.
+    deck : Deck or None
+        The original deck used by the player, from which the library is created. It can be None.
     hand : Hand
         The hand of the player, representing the cards currently held.
-    library : Library
-        The library (deck) of the player, representing the remaining cards in the deck.
+    library : Library or None
+        The library (deck) of the player, representing the remaining cards in the deck. It can be None.
     mulligan_count : int
         The number of mulligans the player has taken.
     turn : int
@@ -26,9 +26,14 @@ class Player:
         The number of lands played by the player in the current turn.
     extra_lands_allowed : int
         The extra number of lands a player can play per turn due to special effects.
+    ready_to_play : bool
+        Indicates if the player is ready to play (i.e., has a valid deck assigned).
     """
 
-    def __init__(self, name: str, deck: Deck):
+    def __init__(self, 
+                 name: str = "Untitled Player", 
+                 deck: Deck = None,
+                 ):
         """
         Constructs all the necessary attributes for the Player object.
         
@@ -36,8 +41,30 @@ class Player:
         -----------
         name : str
             The name of the player.
+        deck : Deck, optional
+            The deck used by the player. It must be a valid deck if provided.
+        """
+        self.name = name
+        self.deck = deck
+        self.deck_name = deck.deck_name if deck else None
+        self.mulligan_count = 0
+        self.turn = 0  
+        self.lands_played = 0
+        self.extra_lands = 0
+        self.hand = Hand()
+        self.hand_size = 0
+        self.library = Library(deck) if deck else None
+        self.valid_deck = deck.is_valid() if deck else False
+        self.initial_hand_drawn = False 
+
+    def assign_deck(self, deck: Deck):
+        """
+        Assigns a deck to a player.
+        
+        Parameters:
+        -----------
         deck : Deck
-            The deck used by the player. It must be a valid deck.
+            The deck to be assigned to the player.
         
         Raises:
         -------
@@ -47,30 +74,60 @@ class Player:
         if not deck.is_valid():
             raise ValueError("The deck provided is not valid.")
         
-        self.name = name
-        self.deck = deck  # Armazena o deck original
-        self.mulligan_count = 0
-        self.turn = 0  # Inicializa o turno como 0
-        self.lands_played = 0  # Inicializa os terrenos jogados no turno como 0
-        self.extra_lands_allowed = 0  # Inicializa os terrenos extras permitidos como 0
-        self.hand = Hand()  # A mão é criada vazia
-        self.library = Library(deck)  # A biblioteca é criada a partir do deck
+        if self.deck is not None:
+            raise RuntimeError("A deck has already been assigned to this player and cannot be reassigned.")
+
+        self.deck = deck
+        self.deck_name = deck.deck_name
+        self.library = Library(deck)
+        self.valid_deck = True
 
     def draw_initial_hand(self):
         """
-        Draws the initial hand of 7 cards from the library.
+        Draws the initial hand of 7 cards from the library and updates the library accordingly.
+        Can only be called once directly; subsequent calls must be through the mulligan method.
+        
+        Raises:
+        -------
+        ValueError:
+            If the player is not ready to play or if the initial hand has already been drawn.
         """
-        self.hand = Hand()  # Reseta a mão
-        for _ in range(7):
-            self.hand.add_card(self.library.draw_card())
+        if not self.valid_deck:
+            raise ValueError("Player is not ready to play. Please assign a valid deck.")
 
-    def mulligan(self):
+        if self.initial_hand_drawn:
+            raise ValueError("Initial hand has already been drawn. Use the mulligan method to draw a new hand.")
+
+        self.library = Library(self.deck)
+        self.library.shuffle()
+        self.hand = Hand()
+        
+        for _ in range(7):
+            drawn_card = self.library.draw_card()
+            self.hand.add_card(drawn_card)
+
+        self.hand_size = len(self.hand.cards)
+        self.initial_hand_drawn = True
+        self.hand.organize()
+
+
+    def ask_mulligan(self):
         """
-        Performs a mulligan, reducing the number of cards in the player's hand by one
-        after drawing 7 cards. Cards are returned to the library based on balance rules.
+        Performs a mulligan if the player is ready to play, reducing the number of cards
+        in the player's hand by one after drawing 7 cards.
+        
+        Raises:
+        -------
+        ValueError:
+            If the player is not ready to play.
         """
+        if not self.valid_deck:
+            raise ValueError("Player is not ready to play. Please assign a valid deck.")
+            
         self.mulligan_count += 1
-        self.draw_initial_hand()  # Compra sempre 7 cartas
+        self.initial_hand_drawn = False
+        self.draw_initial_hand()
+        
 
         cards_to_return = self.mulligan_count
 
@@ -86,66 +143,115 @@ class Player:
             self.library.return_card(card_to_return)
             cards_to_return -= 1
 
+
     def next_turn(self):
         """
-        Advances the game to the next turn. The player draws one card from the library
-        and adds it to their hand. If the player has more than 7 cards in hand at the
-        end of the turn, they must discard a card. The turn number is incremented.
-        """
-        self.turn += 1  # Incrementa o turno
-        self.lands_played = 0  # Reseta os terrenos jogados no turno
-        drawn_card = self.library.draw_card()  # Retira uma carta da library
-        self.hand.add_card(drawn_card)  # Adiciona a carta à mão
+        Advances the game to the next turn if the player is ready to play.
         
-        # Verificar se a mão tem mais de 7 cartas e descartar uma se necessário
+        Raises:
+        -------
+        ValueError:
+            If the player is not ready to play.
+        """
+        if not self.valid_deck:
+            raise ValueError("Player is not ready to play. Please assign a valid deck.")
+        
+        self.turn += 1
+        self.lands_played = 0
+        drawn_card = self.library.draw_card()
+        self.hand.add_card(drawn_card)
+
         if len(self.hand.cards) > 7:
             self.discard_card()
 
-    def allow_extra_land(self, extra_lands: int):
+    def play_land(self, card: Card, tracker: 'Plays', extra_lands: int = 0) -> bool:
         """
-        Permite que o jogador jogue terrenos extras neste turno.
+        Attempts to play a land card if the player is ready to play.
         
         Parameters:
         -----------
+        card : Card
+            The land card to be played.
+        tracker : Plays
+            The tracker that records the number of successful and unsuccessful plays.
         extra_lands : int
             The number of extra lands the player is allowed to play this turn.
+        
+        Returns:
+        --------
+        bool
+            True if the card was played, False otherwise.
+        
+        Raises:
+        -------
+        ValueError:
+            If the player is not ready to play.
         """
-        self.extra_lands_allowed += extra_lands
+        if not self.valid_deck:
+            raise ValueError("Player is not ready to play. Please assign a valid deck.")
 
-    def total_lands_allowed(self) -> int:
-        """
-        Retorna o número total de terrenos que o jogador pode jogar no turno atual,
-        incluindo terrenos extras permitidos.
-        """
-        return 1 + self.extra_lands_allowed
+        self.extra_lands += extra_lands
 
-    def play_land(self, card: Card, tracker: 'Plays') -> bool:
-        """
-        Tenta jogar uma carta de terreno. Permite jogar mais de um terreno se
-        o jogador tiver permissão extra. Registra o resultado no PlaysTracker.
-        Retorna True se a carta foi jogada, False se não foi.
-        """
-        if self.lands_played < (1 + self.extra_lands_allowed):
-            if self.hand.play_land(card, tracker, self):
-                print(f"{self.name} jogou o terreno {card.name}.")
-                return True
-        print(f"{self.name} não pode jogar o terreno {card.name}.")
-        return False
-
+        if 'Land' in card.type and self.lands_played < (1 + self.extra_lands):
+            self.hand.remove_card(card)
+            tracker.add_played()
+            self.lands_played += 1
+            print(f"{self.name} played the land {card.name}.")
+            return True
+        else:
+            tracker.add_not_played()
+            print(f"{self.name} cannot play the land {card.name}.")
+            return False
+        
     def play_spell(self, tracker: 'Plays', available_mana: int) -> bool:
         """
-        Tenta jogar uma ou mais mágicas (spells) otimizando o uso de mana.
-        Verifica se há mana suficiente e tenta usar o máximo de mana possível.
-        Registra o resultado no PlaysTracker.
-        Retorna True se alguma carta foi jogada, False se nenhuma carta foi jogada.
+        Attempts to play one or more spells if the player is ready to play.
+        Optimizes mana usage by playing the best possible combination of spells.
+        
+        Parameters:
+        -----------
+        tracker : Plays
+            The tracker that records the number of successful and unsuccessful plays.
+        available_mana : int
+            The amount of available mana for casting spells.
+        
+        Returns:
+        --------
+        bool
+            True if some card was played, False otherwise.
+        
+        Raises:
+        -------
+        ValueError:
+            If the player is not ready to play.
         """
-        if self.hand.play_spell(tracker, available_mana):
-            print(f"{self.name} jogou uma ou mais mágicas usando {available_mana} mana.")
-            return True
-        print(f"{self.name} não conseguiu jogar nenhuma mágica.")
-        return False
+        if not self.valid_deck:
+            raise ValueError("Player is not ready to play. Please assign a valid deck.")
 
-    def discard_card(self, tracker: 'Plays', return_to_library=False):
+        # Ordena as cartas por custo de mana, do maior para o menor
+        spells = [card for card in self.hand.cards if 'Land' not in card.type]
+        spells.sort(key=lambda card: card.cmc, reverse=True)
+
+        # Tenta jogar a melhor combinação de cartas
+        mana_used = 0
+        cards_to_play = []
+        for spell in spells:
+            if mana_used + spell.cmc <= available_mana:
+                cards_to_play.append(spell)
+                mana_used += spell.cmc
+
+        if cards_to_play:
+            for card in cards_to_play:
+                self.hand.remove_card(card)
+                tracker.add_played()
+            print(f"{self.name} played spells using {mana_used} mana.")
+            return True
+        else:
+            tracker.add_not_played()
+            print(f"{self.name} couldn't play any spells.")
+            return False
+
+    def discard_card(self, tracker: 'Plays' = None, return_to_library=False):
         """
         Discards a card from the player's hand. If `return_to_library` is True, the card is returned
         to the library (typically during a mulligan). Otherwise, the card is simply discarded, and 
@@ -157,17 +263,25 @@ class Player:
             The tracker that records the number of successful and unsuccessful plays.
         return_to_library : bool
             Whether the card should be returned to the library (e.g., during a mulligan).
+        
+        Raises:
+        -------
+        ValueError:
+            If the player is not ready to play.
         """
-        # Por simplicidade, vamos descartar a carta com o maior custo de mana
+        if not self.valid_deck:
+            raise ValueError("Player is not ready to play. Please assign a valid deck.")
+        
+        # For simplicity, let's discard the card with the highest mana cost
         card_to_discard = max(self.hand.cards, key=lambda c: c.cmc)
         self.hand.remove_card(card_to_discard)
         
         if return_to_library:
             self.library.return_card(card_to_discard)
-            print(f"{self.name} retorna {card_to_discard.name} para a library.")
+            print(f"{self.name} returns {card_to_discard.name} to the library.")
         else:
             tracker.add_not_played()
-            print(f"{self.name} descarta {card_to_discard.name}.")
+            print(f"{self.name} discards {card_to_discard.name}.")
 
     def __repr__(self):
         """
@@ -178,4 +292,4 @@ class Player:
         str
             A string representation showing the player's name, hand, library, and current turn.
         """
-        return f"Player({self.name}, Turn: {self.turn}, Hand: {self.hand}, Library: {self.library})"
+        return f"Player({self.name}, Deck:{self.deck_name} ,Turn: {self.turn}, Hand: {self.hand}, Library: {self.library} cards)"

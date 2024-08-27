@@ -1,3 +1,4 @@
+import random
 from mtgsdk import Card
 from classes.deck import Deck
 
@@ -23,7 +24,8 @@ class Library:
         if not deck.is_valid():
             raise ValueError("The deck provided is not valid.")
         
-        self.cards = deck.cards[:]  # Copia as cartas do deck para a library
+        self.cards = deck.cards[:]
+        self.library_size = len(self.cards)
 
     def draw_card(self):
         """
@@ -37,7 +39,10 @@ class Library:
         if len(self.cards) == 0:
             raise ValueError("Cannot draw from an empty library.")
         
-        return self.cards.pop(0)  # Retira a primeira carta do deck
+        popped_card = self.cards.pop(0)
+        self.library_size = len(self.cards)
+
+        return popped_card
 
     def return_card(self, card: Card):
         """
@@ -49,12 +54,13 @@ class Library:
             The card to be returned to the library.
         """
         self.cards.append(card)
+        self.shuffle()
+        self.library_size = len(self.cards)
 
     def shuffle(self):
         """
         Shuffles the library.
         """
-        import random
         random.shuffle(self.cards)
 
     def __len__(self):
