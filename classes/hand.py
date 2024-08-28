@@ -1,5 +1,4 @@
 from mtgsdk import Card
-from classes.plays import Plays
 from classes.library import Library
 
 from typing import TYPE_CHECKING

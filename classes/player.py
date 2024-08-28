@@ -2,7 +2,11 @@ from mtgsdk import Card
 from classes.hand import Hand
 from classes.library import Library
 from classes.deck import Deck
-from classes.plays import Plays
+from classes.graveyard import Graveyard
+from classes.battlefield import Battlefield
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Player:
     """
@@ -47,13 +51,20 @@ class Player:
         self.name = name
         self.deck = deck
         self.deck_name = deck.deck_name if deck else None
+
+        self.hand = Hand()
+        self.battlefield = Battlefield()
+        self.library = Library(deck) if deck else None
+        self.graveyard = Graveyard()
+
         self.mulligan_count = 0
         self.turn = 0  
         self.lands_played = 0
+        self.spells_played = 0
         self.extra_lands = 0
-        self.hand = Hand()
+        self.mana_pool = 0
         self.hand_size = 0
-        self.library = Library(deck) if deck else None
+
         self.valid_deck = deck.is_valid() if deck else False
         self.initial_hand_drawn = False 
 
@@ -123,11 +134,13 @@ class Player:
         """
         if not self.valid_deck:
             raise ValueError("Player is not ready to play. Please assign a valid deck.")
-            
+        
+        if self.turn != 0:
+            raise ValueError("Mulligan can only be performed at the beginning of the game.")
+
         self.mulligan_count += 1
         self.initial_hand_drawn = False
         self.draw_initial_hand()
-        
 
         cards_to_return = self.mulligan_count
 
@@ -158,13 +171,22 @@ class Player:
         
         self.turn += 1
         self.lands_played = 0
+
         drawn_card = self.library.draw_card()
         self.hand.add_card(drawn_card)
+        
+        land_card = next((card for card in self.hand.cards if 'Land' in card.type), None)
+        if land_card:
+            self.play_land(land_card)
+
+        self.play_spell(self.mana_pool)        
 
         if len(self.hand.cards) > 7:
             self.discard_card()
+        
+        self.hand.organize()
 
-    def play_land(self, card: Card, tracker: 'Plays', extra_lands: int = 0) -> bool:
+    def play_land(self, card: Card, extra_lands: int = 0) -> bool:
         """
         Attempts to play a land card if the player is ready to play.
         
@@ -172,8 +194,6 @@ class Player:
         -----------
         card : Card
             The land card to be played.
-        tracker : Plays
-            The tracker that records the number of successful and unsuccessful plays.
         extra_lands : int
             The number of extra lands the player is allowed to play this turn.
         
@@ -194,24 +214,25 @@ class Player:
 
         if 'Land' in card.type and self.lands_played < (1 + self.extra_lands):
             self.hand.remove_card(card)
-            tracker.add_played()
             self.lands_played += 1
-            print(f"{self.name} played the land {card.name}.")
+
+            self.battlefield.add_land(card)
+            self.mana_pool = self.battlefield.calculate_mana_pool()
+            
+            logger.info(f"{self.name} played the land {card.name}.")
+            
             return True
         else:
-            tracker.add_not_played()
-            print(f"{self.name} cannot play the land {card.name}.")
+            logger.warning(f"{self.name} cannot play the land {card.name}.")
             return False
         
-    def play_spell(self, tracker: 'Plays', available_mana: int) -> bool:
+    def play_spell(self, available_mana: int) -> bool:
         """
         Attempts to play one or more spells if the player is ready to play.
         Optimizes mana usage by playing the best possible combination of spells.
         
         Parameters:
         -----------
-        tracker : Plays
-            The tracker that records the number of successful and unsuccessful plays.
         available_mana : int
             The amount of available mana for casting spells.
         
@@ -243,15 +264,14 @@ class Player:
         if cards_to_play:
             for card in cards_to_play:
                 self.hand.remove_card(card)
-                tracker.add_played()
-            print(f"{self.name} played spells using {mana_used} mana.")
+                self.spells_played += 1
+                logger.info(f"{self.name} played the spell {card.name}.")
             return True
         else:
-            tracker.add_not_played()
-            print(f"{self.name} couldn't play any spells.")
+            logger.warning(f"{self.name} couldn't play any spells.")
             return False
 
-    def discard_card(self, tracker: 'Plays' = None, return_to_library=False):
+    def discard_card(self, return_to_library=False):
         """
         Discards a card from the player's hand. If `return_to_library` is True, the card is returned
         to the library (typically during a mulligan). Otherwise, the card is simply discarded, and 
@@ -259,8 +279,6 @@ class Player:
         
         Parameters:
         -----------
-        tracker : Plays
-            The tracker that records the number of successful and unsuccessful plays.
         return_to_library : bool
             Whether the card should be returned to the library (e.g., during a mulligan).
         
@@ -278,18 +296,27 @@ class Player:
         
         if return_to_library:
             self.library.return_card(card_to_discard)
-            print(f"{self.name} returns {card_to_discard.name} to the library.")
         else:
-            tracker.add_not_played()
-            print(f"{self.name} discards {card_to_discard.name}.")
+            self.graveyard.add_card(card_to_discard) 
 
     def __repr__(self):
         """
-        Returns a string representation of the player.
+        Returns a string representation of the player in a more readable format.
         
         Returns:
         --------
         str
-            A string representation showing the player's name, hand, library, and current turn.
+            A string representation showing the player's details over multiple lines.
         """
-        return f"Player({self.name}, Deck:{self.deck_name} ,Turn: {self.turn}, Hand: {self.hand}, Library: {self.library} cards)"
+        library_size = len(self.library) if self.library else 0
+        hand_size = len(self.hand) if self.hand else 0
+
+        return (f"Player:\n"
+                f"  Name: {self.name}\n"
+                f"  Deck: {self.deck_name}\n"
+                f"  Turn: {self.turn}\n"
+                f"  Hand: {hand_size} cards\n"
+                f"  Library: {library_size} cards\n"
+                f"  Lands played: {self.lands_played}\n"
+                f"  Mana pool: {self.mana_pool}\n"
+                f"  Spells played: {self.spells_played}\n")

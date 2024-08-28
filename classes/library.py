@@ -1,6 +1,9 @@
 import random
 from mtgsdk import Card
 from classes.deck import Deck
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Library:
     """
@@ -53,6 +56,7 @@ class Library:
         card : Card
             The card to be returned to the library.
         """
+        logger.info("Returning {} to the library after mulligan".format(card.name))
         self.cards.append(card)
         self.shuffle()
         self.library_size = len(self.cards)
