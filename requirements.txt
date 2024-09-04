@@ -3,3 +3,6 @@ pandas
 sklearn
 unittest
 vcrpy
+selenium
+webdriver-manager
+bs4

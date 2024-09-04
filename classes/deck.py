@@ -6,7 +6,7 @@ from classes.constants import (mtg_formats,
                                land_colors, 
                                color_combinations, 
                                color_combinations_abbreviated)
-
+import re
 class Deck:
     """
     A class to represent a valid deck of Magic: The Gathering cards.
@@ -59,10 +59,17 @@ class Deck:
         card_names = []
         card_quantities = {}
 
+        def clean_text(text):
+            """Converts text to lowercase and removes special characters."""
+            text = text.lower()
+            text = text.replace('-', '') # Remove hífens
+            text = re.sub(r'[^a-z0-9\s]', '', text)
+            return text
+
         for line in lines:
             line = line.strip()
             if line.startswith('Name'):
-                self.deck_name = line.split(' ', 1)[1].strip()
+                self.deck_name = clean_text(line.split(' ', 1)[1].strip())
             elif line.startswith('Deck'):
                 deck_list_started = True
             elif deck_list_started and line:
