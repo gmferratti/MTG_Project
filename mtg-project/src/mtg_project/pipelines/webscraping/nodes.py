@@ -5,7 +5,7 @@ import requests
 import zipfile
 import random
 
-from .utils import setup_logger
+from ..utils import setup_logger
 
 def get_deck_zip_from_web(        
         project_path: str,

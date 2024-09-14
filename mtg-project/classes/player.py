@@ -68,6 +68,9 @@ class Player:
         self.valid_deck = deck.is_valid() if deck else False
         self.initial_hand_drawn = False 
 
+    def play_a_match(self):
+        return None
+
     def assign_deck(self, deck: Deck):
         """
         Assigns a deck to a player.

@@ -15,6 +15,7 @@ class Deck:
     def __init__(self, 
                  format_name="Standard",
                  deck_name=None,
+                 deck_colors=None,
                  allowed_sets=None, 
                  allowed_colors=None, 
                  language="EN", 
@@ -30,6 +31,7 @@ class Deck:
         format_info = mtg_formats[format_name]
 
         self.deck_name = deck_name
+        self.deck_colors = deck_colors or set()
         self.allowed_sets = allowed_sets
         self.allowed_colors = allowed_colors
         self.min_cards = format_info["Deck Size"]["Minimum"]
@@ -109,6 +111,9 @@ class Deck:
             card = cards_dict[card_name]
             for _ in range(quantity):
                 self.add_card(card)
+                # Atualizar as cores do deck à medida que as cartas são adicionadas
+                if 'Land' not in card.type and card.colors:
+                    self.deck_colors.update(card.colors)
 
     def determine_land_color(self, card):
         """
@@ -155,7 +160,7 @@ class Deck:
         Counts the number of land cards in the deck.
         """
         return sum(1 for card in self.cards if 'Land' in card.type)
-
+    
     def colors_in_deck(self):
         """
         Returns a set of all colors present in the non-land cards in the deck.
@@ -165,7 +170,7 @@ class Deck:
             if 'Land' not in card.type and card.colors:
                 colors.update(card.colors)
         return colors
-
+    
     def lands_matching_colors(self):
         """
         Returns a set of all land colors present in the deck.
@@ -261,6 +266,6 @@ class Deck:
         Returns a string representation of the deck.
         """
         allowed_sets = [set_.name for set_ in self.allowed_sets] if self.allowed_sets else "All sets allowed"
-        allowed_colors = ', '.join(self.allowed_colors) if self.allowed_colors else "All colors allowed"
+        deck_colors = ', '.join(self.deck_colors) if self.deck_colors else "No colors"
         num_lands = self.count_lands()
-        return f"Deck({len(self.cards)} cards, {num_lands} lands, Language: {self.language}, Sets: {allowed_sets}, Colors: {allowed_colors})"
+        return f"Deck({len(self.cards)} cards, {num_lands} lands, Language: {self.language}, Colors: {deck_colors}), Sets: {allowed_sets}"

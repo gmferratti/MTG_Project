@@ -23,7 +23,8 @@ preprocessing:
 # pipeline de simulacao
 simulation:
   n_players: 4
-  n_simulations_per_deck: 10
+  log_folder: "data/02_intermediate/simulation_log/"
+  plays_per_player: 10
   
 
 # Pipeline de modelagem

@@ -14,4 +14,14 @@ decks_txt_partitioned:
 
 sampled_decks:
   type: pickle.PickleDataset
-  filepath: data/02_intermediate/sample_decks.pkl
+  filepath: data/02_intermediate/sampled_decks.pkl
+
+### SIMULATION DATA ###
+
+players:
+  type: pickle.PickleDataset
+  filepath: data/02_intermediate/players.pkl
+
+players_with_decks:
+  type: pickle.PickleDataset
+  filepath: data/02_intermediate/players_with_decks.pkl
