@@ -269,6 +269,7 @@ class Player:
                 self.hand.remove_card(card)
                 self.spells_played += 1
                 logger.info(f"{self.name} played the spell {card.name}.")
+                self.graveyard.add_card(card)
             return True
         else:
             logger.warning(f"{self.name} couldn't play any spells.")
