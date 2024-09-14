@@ -1,0 +1,13 @@
+### WEBSCRAPER DATA ###
+
+decks_json_partitioned:
+  type: partitions.PartitionedDataset
+  path: data/01_raw/decks_json
+  dataset:
+    type: pandas.JSONDataset
+
+decks_txt_partitioned:
+  type: partitions.PartitionedDataset
+  path: data/01_raw/decks_txt
+  dataset:
+    type: text.TextDataset

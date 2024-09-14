@@ -1,0 +1,47 @@
+# parameters.yml
+
+# parametros globais
+global:
+  run_date:
+    day: 14
+    month: 9
+    year: 2024
+  user:
+    # mude para o seu proprio diretorio
+    project_path: "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_03/mtg-project"
+  
+
+# pipeline de preprocessamento de dados
+preprocessing:
+  webscraper:
+    zip_url: "https://mtgjson.com/api/v5/AllDeckFiles.zip"
+    zip_folder: "data/01_raw/"
+    log_folder: "data/01_raw/decks_log/"
+    valid_card_count: 40
+    deck_sample_size_ratio: 0.1
+
+
+# Pipeline de modelagem
+modeling:
+  # Parâmetros do modelo XGBoost
+  xgboost:
+    learning_rate: 0.1
+    max_depth: 6
+    n_estimators: 100
+  
+  # Parâmetros do modelo RandomForest
+  random_forest:
+    n_estimators: 200
+    max_depth: 10
+    random_state: 42
+
+# Pipeline de avaliação
+evaluation:
+  # Parâmetros para avaliação do modelo
+  metrics:
+    accuracy_threshold: 0.85
+    f1_threshold: 0.7
+  # Parâmetros para relatórios
+  reporting:
+    save_reports: true
+    report_format: "pdf"

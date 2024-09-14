@@ -1,0 +1,34 @@
+[build-system]
+requires = [ "setuptools",]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mtg_project"
+readme = "README.md"
+dynamic = [ "dependencies", "version",]
+
+[project.scripts]
+mtg-project = "mtg_project.__main__:main"
+
+[tool.kedro]
+package_name = "mtg_project"
+project_name = "mtg_project"
+kedro_init_version = "0.19.6"
+tools = [ "Custom Logging", "Data Structure", "Kedro Viz",]
+example_pipeline = "False"
+source_dir = "src"
+
+[project.entry-points."kedro.hooks"]
+
+[tool.setuptools.dynamic.dependencies]
+file = "requirements.txt"
+
+[tool.setuptools.dynamic.version]
+attr = "mtg_project.__version__"
+
+[tool.setuptools.packages.find]
+where = [ "src",]
+namespaces = false
+
+[tool.kedro_telemetry]
+project_id = "d4c5bd94eff843b4b4949a9b7e8ff402"
