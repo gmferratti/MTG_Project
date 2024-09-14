@@ -2,6 +2,7 @@
 
 # parametros globais
 global:
+  # mude para a data de rodagem do seu projeto
   run_date:
     day: 14
     month: 9
@@ -10,16 +11,20 @@ global:
     # mude para o seu proprio diretorio
     project_path: "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_03/mtg-project"
   
-
 # pipeline de preprocessamento de dados
 preprocessing:
   webscraper:
     zip_url: "https://mtgjson.com/api/v5/AllDeckFiles.zip"
     zip_folder: "data/01_raw/"
     log_folder: "data/01_raw/decks_log/"
-    valid_card_count: 40
-    deck_sample_size_ratio: 0.1
+    deck_cards: 40
+    sample_size_ratio: 0.1
 
+# pipeline de simulacao
+simulation:
+  n_players: 4
+  n_simulations_per_deck: 10
+  
 
 # Pipeline de modelagem
 modeling:

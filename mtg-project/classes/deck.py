@@ -249,7 +249,7 @@ class Deck:
                 return df_colors.loc[full_name].to_dict()
 
         return "Combinação de cores não encontrada para o deck"
-
+    
     def __len__(self):
         """
         Returns the number of cards currently in the deck.

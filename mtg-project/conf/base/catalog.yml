@@ -11,3 +11,7 @@ decks_txt_partitioned:
   path: data/01_raw/decks_txt
   dataset:
     type: text.TextDataset
+
+sampled_decks:
+  type: pickle.PickleDataset
+  filepath: data/02_intermediate/sample_decks.pkl

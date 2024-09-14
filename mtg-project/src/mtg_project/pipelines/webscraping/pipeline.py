@@ -1,11 +1,10 @@
 """Preprocessing pipeline."""
 
 from kedro.pipeline import node, Pipeline
-from nodes import (
+from .nodes import (
     get_deck_zip_from_web,
     pp_decks_from_json_files,
-    sampling_decks,
-    save_sampled_decks_to_db)
+    sample_decks)
 
 def create_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
@@ -24,20 +23,22 @@ def create_pipeline(**kwargs) -> Pipeline:
                 func=pp_decks_from_json_files,
                 inputs=[
                     "decks_json_partitioned",
-                    "params:preprocessing.webscraper.valid_card_count",
+                    "params:preprocessing.webscraper.deck_cards",
                     "params:preprocessing.webscraper.log_folder"
                 ],
                 outputs="decks_txt_partitioned",
                 name="pp_decks_from_json_files_node"
             ),
             node(
-                func=sampling_decks,
+                func=sample_decks,
                 inputs=[
                     "decks_txt_partitioned",
-                    "params:preprocessing.sampling.sample_size"
+                    "params:preprocessing.webscraper.sample_size_ratio",
+                    "params:preprocessing.webscraper.log_folder"
                 ],
-                outputs="sampled_decks_parquet",
+                outputs="sampled_decks",
                 name="sampling_decks_node"
             ),
+            # PLACEHOLDER, SAVE TO DB 
         ]
     )
