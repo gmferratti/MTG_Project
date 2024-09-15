@@ -60,3 +60,22 @@ class Graveyard:
         else:
             displayed_cards = ', '.join(card.name for card in self.cards)
             return f"Graveyard({len(self.cards)} cards: {displayed_cards})"
+        
+    def mana_colors_in_graveyard(self):
+        """
+        Calculates the amount of mana of each color in the player's graveyard.
+        """
+        # Reset the mana counts
+        self.graveyard_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        
+        for card in self.graveyard.cards:
+            if card.mana_cost:
+                symbols = card.mana_cost.replace("{", "").replace("}", " ").split()
+                for symbol in symbols:
+                    if symbol in self.graveyard_mana_per_color:
+                        self.graveyard_mana_per_color[symbol] += 1
+                    elif symbol.isdigit():  # Contabilizar mana genérica/incolor
+                        self.graveyard_mana_per_color['C'] += int(symbol)
+
+        return self.graveyard_mana_per_color
+

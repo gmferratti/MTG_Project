@@ -34,3 +34,21 @@ class Battlefield:
             The total available mana from all lands on the battlefield.
         """
         return len(self.lands) 
+    
+    def calculate_mana_pool_per_color(self) -> dict:
+        """
+        Calculates the mana pool per color based on the lands on the battlefield.
+
+        Returns:
+        --------
+        dict
+            A dictionary with the amount of mana available for each color.
+        """
+        mana_pool = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        
+        for land in self.lands:
+            if land.color_identity:
+                for color in land.color_identity:
+                    if color in mana_pool:
+                        mana_pool[color] += 1
+        return mana_pool

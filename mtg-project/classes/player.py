@@ -6,6 +6,7 @@ from classes.graveyard import Graveyard
 from classes.battlefield import Battlefield
 import random
 import logging
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,11 @@ class Player:
 
         self.valid_deck = deck.is_valid() if deck else False
         self.initial_hand_drawn = False 
+
+        self.hand_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        self.graveyard_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        self.battlefield_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        self.mana_pool_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
 
     def play_a_match(self, 
                  tracker, 
@@ -141,6 +147,7 @@ class Player:
                 if land_cards: 
                     self.play_land(land_cards[0])
                     self.mana_pool = self.battlefield.calculate_mana_pool()
+                    self.mana_pool_per_color = self.battlefield.calculate_mana_pool_per_color()
                 else:
                     logger.info(f"Player '{self.name}' has no land cards to play as extra land in match {self.match}.")
 
@@ -155,6 +162,9 @@ class Player:
 
 
     def new_match(self):
+        """
+        Resets the player's attributes at the end of a match.
+        """
         self.hand = Hand()
         self.battlefield = Battlefield()
         self.library = Library(self.deck)
@@ -166,7 +176,11 @@ class Player:
         self.extra_lands = 0
         self.mana_pool = 0
         self.hand_size = 0
-        self.initial_hand_drawn = False 
+        self.initial_hand_drawn = False
+        self.hand_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        self.graveyard_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        self.battlefield_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        self.mana_pool_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
 
     def assign_deck(self, deck: Deck):
         """
@@ -221,6 +235,49 @@ class Player:
         self.initial_hand_drawn = True
         self.hand.organize()
 
+    def mana_colors_in_hand(self):
+        """
+        Calculates the amount of mana of each color in the player's hand, including
+        mana from non-spell cards such as lands (which are based on color identity).
+        """
+        # Reset the mana counts
+        self.hand_mana_per_color = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        
+        for card in self.hand.cards:
+            # Check if the card has a mana cost
+            if card.mana_cost:
+                symbols = card.mana_cost.replace("{", "").replace("}", "").split()
+                for symbol in symbols:
+                    if symbol in self.hand_mana_per_color:
+                        self.hand_mana_per_color[symbol] += 1
+                    elif symbol.isdigit():
+                        self.hand_mana_per_color['C'] += int(symbol)
+            
+            # If no mana cost (likely a land), check color identity
+            elif card.color_identity:
+                for color in card.color_identity:
+                    if color in self.hand_mana_per_color:
+                        self.hand_mana_per_color[color] += 1
+        
+        return self.hand_mana_per_color
+
+
+    def mana_colors_in_graveyard(self):
+        """
+        Calculates the amount of mana of each color in the player's graveyard.
+        """
+        # Reset the mana counts
+        self.graveyard_mana = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        
+        for card in self.graveyard.cards:
+            if card.mana_cost:
+                for symbol in card.mana_cost:
+                    if symbol in self.graveyard_mana:
+                        self.graveyard_mana[symbol] += 1
+                    elif symbol.isdigit():
+                        self.graveyard_mana['C'] += int(symbol)
+
+        return self.graveyard_mana
 
     def ask_mulligan(self):
         """
@@ -287,22 +344,22 @@ class Player:
         
         self.hand.organize()
 
-    def play_land(self, card: Card) -> bool:
+        
+    def play_land(self, land_card: Card) -> bool:
         """
         Attempts to play a land card if the player is ready to play.
-        
+        Prioritizes playing a land that produces mana of the color with the highest affinity in the player's hand.
+
         Parameters:
         -----------
-        card : Card
+        land_card : Card
             The land card to be played.
-        extra_lands : int
-            The number of extra lands the player is allowed to play this turn.
-        
+
         Returns:
         --------
         bool
             True if the card was played, False otherwise.
-        
+
         Raises:
         -------
         ValueError:
@@ -311,34 +368,78 @@ class Player:
         if not self.valid_deck:
             raise ValueError("Player is not ready to play. Please assign a valid deck.")
 
-        if 'Land' in card.type and self.lands_played < (1 + self.extra_lands):
-            self.hand.remove_card(card)
-            self.lands_played += 1
-
-            self.battlefield.add_land(card)
-            self.mana_pool = self.battlefield.calculate_mana_pool()
-            
-            logger.info(f"{self.name} played the land {card.name}.")
-            return True
-        else:
-            logger.warning(f"{self.name} cannot play the land {card.name}.")
+        if self.lands_played >= (1 + self.extra_lands):
+            logger.warning(f"{self.name} cannot play any more lands this turn.")
             return False
-        
+
+        # Calcula a afinidade de cores na mão
+        color_affinity = {'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+        for card in self.hand.cards:
+            if card.mana_cost:
+                for symbol in card.mana_cost:
+                    if symbol in color_affinity:
+                        color_affinity[symbol] += 1
+
+        # Identifica a cor com maior afinidade
+        dominant_color = max(color_affinity, key=color_affinity.get)
+        logger.info(f"{self.name} has a dominant color affinity for: {dominant_color}")
+
+        # Filtra os terrenos na mão
+        land_cards = [card for card in self.hand.cards if 'Land' in card.type]
+
+        if not land_cards:
+            logger.warning(f"{self.name} has no land cards to play.")
+            return False
+
+        # Encontra o terreno que mais se alinha com a cor dominante
+        preferred_land = None
+        for land in land_cards:
+            # Se o terreno puder produzir mana da cor dominante
+            if land.color_identity and dominant_color in land.color_identity:
+                preferred_land = land
+                break
+
+        # Se nenhum terreno da cor dominante for encontrado, joga qualquer terreno disponível
+        if not preferred_land:
+            # Caso não tenha terrenos com afinidade dominante, joga o terreno passado como argumento
+            preferred_land = land_card  # Usa o terreno passado como argumento
+
+        # Joga o terreno
+        self.hand.remove_card(preferred_land)
+        self.lands_played += 1
+        self.battlefield.add_land(preferred_land)
+
+        # Atualiza o pool de mana com base no terreno jogado
+        if preferred_land.color_identity:
+            for color in preferred_land.color_identity:
+                if color in self.mana_pool_per_color:
+                    self.mana_pool_per_color[color] += 1
+
+        # Atualiza o pool de mana cumulativo
+        self.mana_pool = self.battlefield.calculate_mana_pool()
+        self.mana_pool_per_color = self.battlefield.calculate_mana_pool_per_color()
+
+        logger.info(f"{self.name} played the land {preferred_land.name} to support the color {dominant_color}.")
+        logger.info(f"Current mana pool: {self.mana_pool_per_color}")
+
+        return True
+
+
     def play_spell(self, available_mana: int) -> bool:
         """
-        Attempts to play one or more spells if the player is ready to play.
-        Optimizes mana usage by playing the best possible combination of spells.
-        
+        Attempts to play the combination of spells that maximizes the total mana spent, 
+        while ensuring the player has enough mana of each color to cast them.
+
         Parameters:
         -----------
         available_mana : int
-            The amount of available mana for casting spells.
-        
+            The total available mana for casting spells.
+
         Returns:
         --------
         bool
             True if some card was played, False otherwise.
-        
+
         Raises:
         -------
         ValueError:
@@ -346,21 +447,65 @@ class Player:
         """
         if not self.valid_deck:
             raise ValueError("Player is not ready to play. Please assign a valid deck.")
-
-        # Ordena as cartas por custo de mana, do maior para o menor
+        
+        # Lista de todas as magias na mão
         spells = [card for card in self.hand.cards if 'Land' not in card.type]
-        spells.sort(key=lambda card: card.cmc, reverse=True)
+        
+        # Verifica todas as combinações possíveis de magias (subconjuntos)
+        max_mana_spent = 0
+        best_combo = []
 
-        # Tenta jogar a melhor combinação de cartas
-        mana_used = 0
-        cards_to_play = []
-        for spell in spells:
-            if mana_used + spell.cmc <= available_mana:
-                cards_to_play.append(spell)
-                mana_used += spell.cmc
+        for num_cards in range(1, len(spells) + 1):
+            for combo in itertools.combinations(spells, num_cards):
+                mana_required_total = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+                mana_spent = 0
+                can_cast_combo = True
 
-        if cards_to_play:
-            for card in cards_to_play:
+                # Calcula o mana necessário para lançar essa combinação de cartas
+                for spell in combo:
+                    mana_required = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+                    
+                    if spell.mana_cost:
+                        for symbol in spell.mana_cost:
+                            if symbol in mana_required:
+                                mana_required[symbol] += 1
+                            elif symbol.isdigit():  # Mana incolor ou genérica
+                                mana_required['C'] += int(symbol)
+                    
+                    # Adiciona o mana requerido para o total
+                    for color in mana_required:
+                        mana_required_total[color] += mana_required[color]
+                    
+                    mana_spent += spell.cmc
+                
+                # Verifica se há mana suficiente para lançar essa combinação de cartas
+                for color, required in mana_required_total.items():
+                    if required > self.mana_pool_per_color[color]:
+                        can_cast_combo = False
+                        break
+                
+                # Se essa combinação é válida e usa mais mana do que a combinação atual, atualiza a melhor
+                if can_cast_combo and mana_spent > max_mana_spent:
+                    max_mana_spent = mana_spent
+                    best_combo = combo
+
+        # Joga a melhor combinação de cartas, se possível
+        if best_combo:
+            for card in best_combo:
+                # Calcula o mana necessário para essa carta
+                mana_required = {'C': 0, 'W': 0, 'U': 0, 'B': 0, 'R': 0, 'G': 0}
+                if card.mana_cost:
+                    for symbol in card.mana_cost:
+                        if symbol in mana_required:
+                            mana_required[symbol] += 1
+                        elif symbol.isdigit():  # Mana incolor ou genérica
+                            mana_required['C'] += int(symbol)
+
+                # Deduz o mana do pool de mana
+                for color, used in mana_required.items():
+                    self.mana_pool_per_color[color] -= used
+
+                # Joga a carta
                 self.hand.remove_card(card)
                 self.spells_played += 1
                 self.spent_mana += card.cmc

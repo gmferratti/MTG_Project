@@ -11,6 +11,10 @@ class PlayerTracker:
             'name', 'deck_name', 'deck_colors', 'match', 'turn', 'mulligan_count', 'lands_played',
             'spells_played', 'mana_pool', 'spent_mana', 'hand_size', 'library_size',
             'graveyard_size', 'full_hand', 'full_graveyard', 
+            'hand_W', 'hand_U', 'hand_B', 'hand_R', 'hand_G', 'hand_C',
+            'graveyard_W', 'graveyard_U', 'graveyard_B', 'graveyard_R', 'graveyard_G', 'graveyard_C',
+            'mana_pool_W', 'mana_pool_U', 'mana_pool_B', 'mana_pool_R', 'mana_pool_G', 'mana_pool_C',
+            'battlefield_W', 'battlefield_U', 'battlefield_B', 'battlefield_R', 'battlefield_G', 'battlefield_C'
         ])
 
     def log_turn(self, player):
@@ -19,9 +23,8 @@ class PlayerTracker:
 
         Args:
             player (Player): The player whose state is being logged.
-            match (int): The current match number being logged.
         """
-        # Cria um dicionário com os atributos do player
+        # Cria um dicionário com os atributos do player, incluindo o mana por cor
         player_data = {
             'name': player.name,
             'deck_name': player.deck_name,
@@ -38,6 +41,30 @@ class PlayerTracker:
             'graveyard_size': len(player.graveyard),
             'full_hand': repr(player.hand),
             'full_graveyard': repr(player.graveyard),
+            'hand_W': player.hand_mana_per_color['W'],
+            'hand_U': player.hand_mana_per_color['U'],
+            'hand_B': player.hand_mana_per_color['B'],
+            'hand_R': player.hand_mana_per_color['R'],
+            'hand_G': player.hand_mana_per_color['G'],
+            'hand_C': player.hand_mana_per_color['C'],
+            'graveyard_W': player.graveyard_mana_per_color['W'],
+            'graveyard_U': player.graveyard_mana_per_color['U'],
+            'graveyard_B': player.graveyard_mana_per_color['B'],
+            'graveyard_R': player.graveyard_mana_per_color['R'],
+            'graveyard_G': player.graveyard_mana_per_color['G'],
+            'graveyard_C': player.graveyard_mana_per_color['C'],
+            'mana_pool_W': player.mana_pool_per_color['W'],
+            'mana_pool_U': player.mana_pool_per_color['U'],
+            'mana_pool_B': player.mana_pool_per_color['B'],
+            'mana_pool_R': player.mana_pool_per_color['R'],
+            'mana_pool_G': player.mana_pool_per_color['G'],
+            'mana_pool_C': player.mana_pool_per_color['C'],
+            'battlefield_W': player.battlefield_mana_per_color['W'],
+            'battlefield_U': player.battlefield_mana_per_color['U'],
+            'battlefield_B': player.battlefield_mana_per_color['B'],
+            'battlefield_R': player.battlefield_mana_per_color['R'],
+            'battlefield_G': player.battlefield_mana_per_color['G'],
+            'battlefield_C': player.battlefield_mana_per_color['C']
         }
         
         # Cria um DataFrame temporário para adicionar a nova linha
