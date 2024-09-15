@@ -25,7 +25,7 @@ simulation:
   n_players: 4
   matches_per_player: 10
   hand_size_stop: 0
-  max_turns: 10
+  max_turns: 12
   max_mulligans: 3
   mulligan_prob: 0.20
   extra_land_prob: 0.10

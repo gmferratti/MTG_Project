@@ -9,8 +9,8 @@ class PlayerTracker:
         # Inicializa um DataFrame vazio com as colunas correspondentes aos atributos do Player
         self.data = pd.DataFrame(columns=[
             'name', 'deck_name', 'deck_colors', 'turn', 'mulligan_count', 'lands_played',
-            'spells_played', 'extra_lands', 'mana_pool', 'hand_size', 'deck_size',
-            'graveyard_size', 'full_hand', 'full_graveyard'
+            'spells_played', 'mana_pool', 'hand_size', 'library_size',
+            'graveyard_size', 'full_hand', 'full_graveyard', 'match'
         ])
 
     def log_turn(self, player):
@@ -19,6 +19,7 @@ class PlayerTracker:
 
         Args:
             player (Player): The player whose state is being logged.
+            match (int): The current match number being logged.
         """
         # Cria um dicionário com os atributos do player
         player_data = {
@@ -29,13 +30,13 @@ class PlayerTracker:
             'mulligan_count': player.mulligan_count,
             'lands_played': player.lands_played,
             'spells_played': player.spells_played,
-            'extra_lands': player.extra_lands,
             'mana_pool': player.mana_pool,
             'hand_size': len(player.hand.cards),
-            'deck_size': len(player.deck.cards),
+            'library_size': len(player.library),
             'graveyard_size': len(player.graveyard),
             'full_hand': repr(player.hand),
-            'full_graveyard': repr(player.graveyard)
+            'full_graveyard': repr(player.graveyard),
+            'match': player.match
         }
         
         # Cria um DataFrame temporário para adicionar a nova linha

@@ -4,6 +4,7 @@ from classes.library import Library
 from classes.deck import Deck
 from classes.graveyard import Graveyard
 from classes.battlefield import Battlefield
+import random
 import logging
 
 logger = logging.getLogger(__name__)
@@ -64,12 +65,105 @@ class Player:
         self.extra_lands = 0
         self.mana_pool = 0
         self.hand_size = 0
+        self.match = 0
 
         self.valid_deck = deck.is_valid() if deck else False
         self.initial_hand_drawn = False 
 
-    def play_a_match(self):
-        return None
+    def play_a_match(self, 
+                 tracker, 
+                 max_mulligans, 
+                 mulligan_prob, 
+                 max_turns, 
+                 hand_size_stop, 
+                 extra_land_prob):
+        """
+        Simulates a Magic: The Gathering match for the player, including drawing an initial hand, performing mulligans,
+        playing lands (including extra lands if allowed), and taking turns up to the maximum specified.
+
+        Parameters:
+        -----------
+        tracker : PlayerTracker
+            Object that tracks and logs the player's state at the end of each turn.
+        max_mulligans : int
+            Maximum number of mulligans allowed for the player in this match.
+        mulligan_prob : float
+            Probability (between 0 and 1) that the player will choose to mulligan after drawing an initial hand.
+        max_turns : int
+            Maximum number of turns allowed for the match.
+        hand_size_stop : int
+            Minimum hand size threshold. The simulation will stop if the player's hand size reaches this value.
+        extra_land_prob : float
+            Probability (between 0 and 1) that the player will play an additional land during each turn.
+
+        Returns:
+        --------
+        None
+        """
+        # Increment the match count
+        self.match += 1
+        logger.info(f"Starting match {self.match} for player {self.name}")
+        
+        # Draw initial hand
+        self.draw_initial_hand()
+        tracker.log_turn(self)  # Log initial state
+        
+        # Mulligan simulation
+        mulligan_count = 0
+        while mulligan_count < max_mulligans:
+            if random.random() < mulligan_prob:
+                logger.info(f"Player '{self.name}' is taking a mulligan in match {self.match}.")
+                self.ask_mulligan()
+                mulligan_count += 1
+                tracker.log_turn(self)  # Log state after mulligan
+            else:
+                logger.info(f"Player '{self.name}' kept their hand in match {self.match}.")
+                break
+        
+        # Turn simulation with extra land plays
+        for turn in range(1, max_turns + 1):
+            self.next_turn()
+
+            # Stop if hand size reaches hand_size_stop
+            if len(self.hand.cards) <= hand_size_stop:
+                logger.info(f"Player '{self.name}' has reached hand_size_stop with {len(self.hand.cards)} cards in match {self.match}. Stopping simulation.")
+                break
+
+            # Extra land play
+            if random.random() < extra_land_prob:
+                self.extra_lands += 1
+                logger.info(f"Player '{self.name}' plays an extra land in match {self.match}. Total extra lands this turn: {self.extra_lands}")
+                
+                # Ensure there's a land card to play
+                land_cards = [card for card in self.hand.cards if 'Land' in card.type]
+                if land_cards:  # Only play land if there is one in hand
+                    self.play_land(land_cards[0])  # Play the first land available
+                else:
+                    logger.info(f"Player '{self.name}' has no land cards to play as extra land in match {self.match}.")
+
+                # Reset extra_lands after playing
+                self.extra_lands = 0
+
+            tracker.log_turn(self)  # Log the state at the end of each turn
+        
+        # End the match
+        logger.info(f"Match {self.match} for player {self.name} completed.")
+        self.new_match()
+
+
+    def new_match(self):
+        self.hand = Hand()
+        self.battlefield = Battlefield()
+        self.library = Library(self.deck)
+        self.graveyard = Graveyard()
+        self.mulligan_count = 0
+        self.turn = 0  
+        self.lands_played = 0
+        self.spells_played = 0
+        self.extra_lands = 0
+        self.mana_pool = 0
+        self.hand_size = 0
+        self.initial_hand_drawn = False 
 
     def assign_deck(self, deck: Deck):
         """
@@ -189,7 +283,7 @@ class Player:
         
         self.hand.organize()
 
-    def play_land(self, card: Card, extra_lands: int = 0) -> bool:
+    def play_land(self, card: Card) -> bool:
         """
         Attempts to play a land card if the player is ready to play.
         
@@ -213,8 +307,6 @@ class Player:
         if not self.valid_deck:
             raise ValueError("Player is not ready to play. Please assign a valid deck.")
 
-        self.extra_lands += extra_lands
-
         if 'Land' in card.type and self.lands_played < (1 + self.extra_lands):
             self.hand.remove_card(card)
             self.lands_played += 1
@@ -223,7 +315,6 @@ class Player:
             self.mana_pool = self.battlefield.calculate_mana_pool()
             
             logger.info(f"{self.name} played the land {card.name}.")
-            
             return True
         else:
             logger.warning(f"{self.name} cannot play the land {card.name}.")
