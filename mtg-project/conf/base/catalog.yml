@@ -25,3 +25,7 @@ players:
 players_with_decks:
   type: pickle.PickleDataset
   filepath: data/02_intermediate/players_with_decks.pkl
+
+matches_dataframe:
+  type: pandas.ParquetDataset
+  filepath: data/03_primary/matches_dataframe.parquet

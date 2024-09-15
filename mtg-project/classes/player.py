@@ -33,6 +33,8 @@ class Player:
         The extra number of lands a player can play per turn due to special effects.
     ready_to_play : bool
         Indicates if the player is ready to play (i.e., has a valid deck assigned).
+    spent_mana : int
+        The amount of mana the player has spent in the current turn.
     """
 
     def __init__(self, 
@@ -66,6 +68,7 @@ class Player:
         self.mana_pool = 0
         self.hand_size = 0
         self.match = 0
+        self.spent_mana = 0
 
         self.valid_deck = deck.is_valid() if deck else False
         self.initial_hand_drawn = False 
@@ -134,10 +137,10 @@ class Player:
                 self.extra_lands += 1
                 logger.info(f"Player '{self.name}' plays an extra land in match {self.match}. Total extra lands this turn: {self.extra_lands}")
                 
-                # Ensure there's a land card to play
                 land_cards = [card for card in self.hand.cards if 'Land' in card.type]
-                if land_cards:  # Only play land if there is one in hand
-                    self.play_land(land_cards[0])  # Play the first land available
+                if land_cards: 
+                    self.play_land(land_cards[0])
+                    self.mana_pool = self.battlefield.calculate_mana_pool()
                 else:
                     logger.info(f"Player '{self.name}' has no land cards to play as extra land in match {self.match}.")
 
@@ -267,6 +270,7 @@ class Player:
             raise ValueError("Player is not ready to play. Please assign a valid deck.")
         
         self.turn += 1
+        self.spent_mana = 0 
         self.lands_played = 0
 
         drawn_card = self.library.draw_card()
@@ -359,6 +363,7 @@ class Player:
             for card in cards_to_play:
                 self.hand.remove_card(card)
                 self.spells_played += 1
+                self.spent_mana += card.cmc
                 logger.info(f"{self.name} played the spell {card.name}.")
                 self.graveyard.add_card(card)
             return True
