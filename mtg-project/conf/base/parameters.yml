@@ -34,7 +34,8 @@ simulation:
 # Pipeline de modelagem
 modeling:
   feature_engineering:
-    high_corr_threshold: 0.75
+    feat_corr_threshold: 0.90
+  
   # Parâmetros do modelo XGBoost
   xgboost:
     learning_rate: 0.1

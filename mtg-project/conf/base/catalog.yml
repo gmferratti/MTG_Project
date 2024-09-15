@@ -1,4 +1,4 @@
-### WEBSCRAPER DATA ###
+### WEBSCRAPINB ###
 
 decks_json_partitioned:
   type: partitions.PartitionedDataset
@@ -16,7 +16,7 @@ sampled_decks:
   type: pickle.PickleDataset
   filepath: data/02_intermediate/sampled_decks.pkl
 
-### SIMULATION DATA ###
+### SIMULATION ###
 
 players:
   type: pickle.PickleDataset
@@ -26,6 +26,39 @@ players_with_decks:
   type: pickle.PickleDataset
   filepath: data/02_intermediate/players_with_decks.pkl
 
-matches_dataframe:
+matches_df:
   type: pandas.ParquetDataset
-  filepath: data/03_primary/matches_dataframe.parquet
+  filepath: data/03_primary/matches_df.parquet
+
+### MODELING ###
+
+features_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/features_df.parquet
+
+selected_features_df:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/selected_features.parquet
+
+# A partir daqui separamos entre feature e target
+train_features:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/train_features.parquet
+
+test_features:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/test_featuresf.parquet
+
+train_target:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/train_target.parquet
+
+test_target:
+  type: pandas.ParquetDataset
+  filepath: data/04_feature/test_target.parquet
+
+model_pkl:
+  type: pickle.PickleDataset
+  filepath: data/05_model/model.pkl
+
+### REPORTING ###
