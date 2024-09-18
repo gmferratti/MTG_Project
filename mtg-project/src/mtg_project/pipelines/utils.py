@@ -2,12 +2,12 @@
 
 import logging
 
-def setup_logger(logger_name:str, 
-                 log_folder: str = None) -> logging.Logger:
+def setup_logger(logger_name: str, log_folder: str = None) -> logging.Logger:
     """
     Configura o logger para salvar os logs em um arquivo ou exibi-los no terminal.
     
     Args:
+        logger_name (str): Nome do logger a ser configurado.
         log_folder (str, optional): Caminho do arquivo onde os logs serão salvos. 
         Se for None, o logger exibirá as informações no terminal.
     
@@ -15,13 +15,14 @@ def setup_logger(logger_name:str,
         logging.Logger: Logger configurado para salvar logs em arquivo ou exibi-los no terminal.
     """
     logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.INFO)
-
-    # Desativa a propagação do logger para o logger raiz
-    logger.propagate = False
-
-    # Verifica se já existem handlers para evitar duplicação de logs
+    
+    # Evita adicionar múltiplos handlers para o mesmo logger
     if not logger.hasHandlers():
+        logger.setLevel(logging.INFO)
+
+        # Desativa a propagação para o logger raiz para evitar duplicação de logs
+        logger.propagate = False
+
         if log_folder:
             # Criar um handler para salvar o log em arquivo
             file_handler = logging.FileHandler(log_folder, mode='w', encoding='utf-8')

@@ -35,19 +35,12 @@ simulation:
 modeling:
   feature_engineering:
     feat_corr_threshold: 0.90
+  feature_selection:
+    n_test_players: None
+    turn_threshold: 3
+    target_column: "mana_curve_efficiency"
   
-  # Parâmetros do modelo XGBoost
-  xgboost:
-    learning_rate: 0.1
-    max_depth: 6
-    n_estimators: 100
   
-  # Parâmetros do modelo RandomForest
-  random_forest:
-    n_estimators: 200
-    max_depth: 10
-    random_state: 42
-
 # Pipeline de avaliação
 evaluation:
   # Parâmetros para avaliação do modelo

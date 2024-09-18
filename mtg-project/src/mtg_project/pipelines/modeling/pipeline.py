@@ -1,42 +1,39 @@
 from kedro.pipeline import node, Pipeline
 from .nodes import (
-    get_deck_zip_from_web,
-    pp_decks_from_json_files,
-    sample_decks)
+    feature_engineering,
+    feature_selection,
+    train_test_split
+)
 
-def create_pipeline(**kwargs) -> Pipeline:
+def create_modeling_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
         [
             node(
-                func=get_deck_zip_from_web,
-                inputs=[
-                    "params:global.user.project_path",
-                    "params:preprocessing.webscraper.zip_url",
-                    "params:preprocessing.webscraper.zip_folder"
-                ],
-                outputs=None,
-                name="get_deck_zip_from_web_node"
+                func=feature_engineering,
+                inputs=["matches_df"],
+                outputs="features_df",
+                name="feature_engineering_node",
             ),
             node(
-                func=pp_decks_from_json_files,
-                inputs=[
-                    "decks_json_partitioned",
-                    "params:preprocessing.webscraper.deck_cards",
-                    "params:preprocessing.webscraper.log_folder"
-                ],
-                outputs="decks_txt_partitioned",
-                name="pp_decks_from_json_files_node"
+                func=feature_selection,
+                inputs=["features_df", 
+                        "params:modeling.feature_engineering.feat_corr_threshold"],
+                outputs="selected_features_df",
+                name="feature_selection_node",
             ),
             node(
-                func=sample_decks,
-                inputs=[
-                    "decks_txt_partitioned",
-                    "params:preprocessing.webscraper.sample_size_ratio",
-                    "params:preprocessing.webscraper.log_folder"
-                ],
-                outputs="sampled_decks",
-                name="sampling_decks_node"
+                func=train_test_split,
+                inputs=["selected_features_df",
+                        "params:modeling.feature_selection.target_column",
+                        "params:modeling.feature_selection.n_test_players"],
+                outputs=["train_features",
+                        "test_features",
+                        "train_target",
+                        "test_target"],
+                name="train_test_split_node",
             ),
-            # PLACEHOLDER, SAVE TO DB 
+
+
+
         ]
     )

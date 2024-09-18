@@ -198,5 +198,11 @@ def sample_decks(
     logger.info(f"Decks amostrados: {', '.join(sampled_keys)}")
     logger.info(f"Amostragem completa. {len(sampled_decks)} decks selecionados.")
 
+    
+    # Remover o handler para evitar problemas futuros
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
+
     return sampled_decks
 

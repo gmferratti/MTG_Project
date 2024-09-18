@@ -6,7 +6,7 @@ from .nodes import (
     assign_decks_to_players, 
     simulate_player_matches)
 
-def create_pipeline(**kwargs) -> Pipeline:
+def create_simulation_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
         [
             node(

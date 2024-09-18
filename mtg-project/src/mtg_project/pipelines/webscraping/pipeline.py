@@ -6,7 +6,7 @@ from .nodes import (
     pp_decks_from_json_files,
     sample_decks)
 
-def create_pipeline(**kwargs) -> Pipeline:
+def create_webscraping_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
         [
             node(

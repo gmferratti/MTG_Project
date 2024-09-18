@@ -104,6 +104,7 @@ class Player:
         None
         """
         # Increment the match count
+        self.new_match()
         self.match += 1
         logger.info(f"Starting match {self.match} for player {self.name}")
         
@@ -151,7 +152,6 @@ class Player:
         
         # End the match
         logger.info(f"Match {self.match} for player {self.name} completed.")
-        self.new_match()
 
 
     def new_match(self):
@@ -166,6 +166,7 @@ class Player:
         self.extra_lands = 0
         self.mana_pool = 0
         self.hand_size = 0
+        self.spent_mana = 0
         self.initial_hand_drawn = False 
 
     def assign_deck(self, deck: Deck):

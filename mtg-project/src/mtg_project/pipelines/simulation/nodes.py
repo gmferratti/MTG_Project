@@ -3,6 +3,7 @@
 import pandas as pd
 import random
 import os
+import warnings
 
 from typing import List, Dict
 from faker import Faker
@@ -11,6 +12,8 @@ from classes.deck import Deck
 from classes.player import Player
 from classes.player_tracker import PlayerTracker
 from src.mtg_project.pipelines.utils import setup_logger
+
+warnings.filterwarnings("ignore")
 
 def create_players(n_players: int):
     """
@@ -103,6 +106,11 @@ def assign_decks_to_players(
 
     logger.info("Deck assignment process completed.")
 
+    # Remover o handler para evitar problemas futuros
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
+
     return players
 
 def simulate_player_matches(
@@ -174,5 +182,10 @@ def simulate_player_matches(
 
     # Obter os dados de todas as partidas e turnos
     matches_dataframe = tracker.get_data()
+    
+    # Remover o handler para evitar problemas futuros
+    for handler in logger.handlers:
+        handler.close()
+        logger.removeHandler(handler)
     
     return matches_dataframe
