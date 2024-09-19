@@ -39,6 +39,5 @@ def create_webscraping_pipeline(**kwargs) -> Pipeline:
                 outputs="sampled_decks",
                 name="sampling_decks_node"
             ),
-            # PLACEHOLDER, SAVE TO DB 
         ]
     )

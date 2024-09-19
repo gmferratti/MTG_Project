@@ -13,17 +13,3 @@ key_cols = [
     "match",
     "turn"
 ]
-
-final_feats_cols = [
-    'mulligan_count',
-    'lands_played',
-    'spells_played',
-    'hand_size',
-    'spell_ratio',
-    'land_ratio',
-    'W',
-    'U',
-    'B',
-    'R',
-    'G',
-]

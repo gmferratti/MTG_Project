@@ -1,1 +1,1 @@
-{"matches_df": {"rows": 324, "columns": 15, "file_size": 22755}, "features_df": {"rows": 324, "columns": 32, "file_size": 43957}, "selected_features_df": {"rows": 324, "columns": 23, "file_size": 25593}, "train_features": {"rows": 242, "columns": 15, "file_size": 13874}, "test_features": {"rows": 82, "columns": 15, "file_size": 12297}, "train_target": {"rows": 242, "columns": 1, "file_size": 4275}, "test_target": {"rows": 82, "columns": 1, "file_size": 3143}}
+{}

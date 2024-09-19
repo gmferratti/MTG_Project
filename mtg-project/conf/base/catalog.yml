@@ -1,4 +1,4 @@
-### WEBSCRAPINB ###
+### WEBSCRAPING ###
 
 decks_json_partitioned:
   type: partitions.PartitionedDataset
@@ -20,45 +20,74 @@ sampled_decks:
 
 players:
   type: pickle.PickleDataset
-  filepath: data/02_intermediate/players.pkl
+  filepath: data/02_intermediate/sampled_decks.pkl
 
 players_with_decks:
-  type: pickle.PickleDataset
-  filepath: data/02_intermediate/players_with_decks.pkl
+  type: partitions.PartitionedDataset
+  path: data/02_intermediate/players_with_decks
+  dataset:
+    type: pickle.PickleDataset
 
 matches_df:
-  type: pandas.ParquetDataset
-  filepath: data/03_primary/matches_df.parquet
+  type: partitions.PartitionedDataset
+  path: data/03_primary/matches_df
+  dataset:
+    type: pandas.ParquetDataset
+
+### FEATURE ENGINEERING ###
+
+features_df:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/features_df
+  dataset:
+    type: pandas.ParquetDataset
+
+selected_features_df:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/selected_features
+  dataset:
+    type: pandas.ParquetDataset
+
+selected_features_cols:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/selected_features_cols
+  dataset:
+    type: pickle.PickleDataset
+
+train_features:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/train_features
+  dataset:
+    type: pandas.ParquetDataset
+
+test_features:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/test_features
+  dataset:
+    type: pandas.ParquetDataset
+
+train_target:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/train_target
+  dataset:
+    type: pandas.ParquetDataset
+
+test_target:
+  type: partitions.PartitionedDataset
+  path: data/04_feature/test_target
+  dataset:
+    type: pandas.ParquetDataset
 
 ### MODELING ###
 
-features_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_feature/features_df.parquet
+best_model:
+  type: partitions.PartitionedDataset
+  path: data/05_model/model
+  dataset:
+    type: pickle.PickleDataset
 
-selected_features_df:
-  type: pandas.ParquetDataset
-  filepath: data/04_feature/selected_features.parquet
-
-# A partir daqui separamos entre feature e target
-train_features:
-  type: pandas.ParquetDataset
-  filepath: data/04_feature/train_features.parquet
-
-test_features:
-  type: pandas.ParquetDataset
-  filepath: data/04_feature/test_featuresf.parquet
-
-train_target:
-  type: pandas.ParquetDataset
-  filepath: data/04_feature/train_target.parquet
-
-test_target:
-  type: pandas.ParquetDataset
-  filepath: data/04_feature/test_target.parquet
-
-model_pkl:
-  type: pickle.PickleDataset
-  filepath: data/05_model/model.pkl
-
-### REPORTING ###
+best_hiper_params:
+  type: partitions.PartitionedDataset
+  path: data/05_model/hiper_params
+  dataset:
+    type: pickle.PickleDataset

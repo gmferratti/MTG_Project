@@ -47,3 +47,21 @@ def setup_logger(logger_name: str, log_folder: str = None) -> logging.Logger:
             logger.addHandler(console_handler)
 
     return logger
+
+def get_last_file(partitioned_data):
+    """
+    Obtém o last file da partição mais recente de um PartitionedDataset.
+
+    Args:
+        partitioned_data (dict): Dicionário com as partições de dados.
+
+    Returns:
+        Any: O ultimo arquivo da partição mais recente.
+    """
+    # Obter a chave da partição mais recente
+    latest_partition = max(partitioned_data.keys())
+    
+    # Obter os dados da partição mais recente
+    data = partitioned_data[latest_partition]
+    
+    return data

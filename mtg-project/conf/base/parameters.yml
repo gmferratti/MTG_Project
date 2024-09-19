@@ -2,11 +2,6 @@
 
 # parametros globais
 global:
-  # mude para a data de rodagem do seu projeto
-  run_date:
-    day: 14
-    month: 9
-    year: 2024
   user:
     # mude para o seu proprio diretorio
     project_path: "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_03/mtg-project"
@@ -36,11 +31,21 @@ modeling:
   feature_engineering:
     feat_corr_threshold: 0.90
   feature_selection:
+    hide_players: False
     n_test_players: None
-    turn_threshold: 3
+    hide_advanced_turns: True
+    turn_threshold: 5
     target_column: "mana_curve_efficiency"
-  
-  
+  model_selection:
+    params_grid:  
+      max_depth: [3, 5, 10, 20, None]
+      min_samples_split: [2, 10, 20]
+      min_samples_leaf: [1, 5, 10]
+      max_features: [None, 'sqrt', 'log2']
+      max_leaf_nodes: [None, 10, 20, 50]
+      min_weight_fraction_leaf: [0.0, 0.1, 0.2]
+    scoring_metric: "f1"
+
 # Pipeline de avaliação
 evaluation:
   # Parâmetros para avaliação do modelo

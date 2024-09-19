@@ -4,13 +4,15 @@ import pandas as pd
 import numpy as np
 import random
 
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.model_selection import GridSearchCV
+
 from typing import List
-from ..utils import setup_logger
 from .constants import (
     derived_feats, 
-    key_cols,
-    final_feats_cols)
-
+    key_cols)
+from ..utils import setup_logger, get_last_file
+from ...config import run_key
 
 def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -47,9 +49,11 @@ def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
     A função também lida com erros de divisão, substituindo valores infinitos por 0, e preenche valores 
     ausentes na variável 'mana_curve_efficiency'.
     """
-
     # Configura o logger geral
     logger = setup_logger("feature_engineering")
+
+    # Pegando o ultimo arquivo do PartitionedDataset
+    matches_df = get_last_file(matches_df)
 
     logger.info("Criando variáveis cumulativas por jogador e partida...")
 
@@ -111,7 +115,7 @@ def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
 
     logger.info("Engenharia de features concluída.")
 
-    return matches_df
+    return {run_key:matches_df}
 
 def feature_selection(
         features_df: pd.DataFrame,
@@ -136,6 +140,9 @@ def feature_selection(
     # Configura o logger geral
     logger = setup_logger("feature_selection")
     logger.info("Iniciando o processo de seleção de features...")
+
+    # Pegando o ultimo arquivo do PartitionedDataset
+    features_df = get_last_file(features_df)
 
     # Separar apenas colunas numéricas para o cálculo da correlação
     numeric_features_df = features_df.select_dtypes(include=[np.number])
@@ -169,6 +176,9 @@ def feature_selection(
 
     logger.info(f"Número de features após a remoção de correlação maior que {threshold_features}: {features_cleaned.shape[1]}")
 
+    # Selecionar as colunas finais de features
+    selected_features_cols = features_cleaned.columns.tolist()
+    
     # Reconstruir o DataFrame final, reinserindo key_columns e target
     features_cleaned = pd.concat([features_cleaned, features_df[key_columns], features_df[[target]]], axis=1)
 
@@ -179,62 +189,78 @@ def feature_selection(
         handler.close()
         logger.removeHandler(handler)
 
-    return features_cleaned
+    return {run_key: features_cleaned}, {run_key:selected_features_cols}
+
 
 def train_test_split(
-        features_df: pd.DataFrame,
+        selected_features_df: pd.DataFrame,
+        target_column: str,
         final_features_list: List[str], 
-        target_column: str, 
+        hide_players: bool = False, 
         n_test_players: int = None, 
         hide_advanced_turns: bool = False,
-        turn_threshold: int = None) -> None:
+        turn_threshold: int = None,) -> None:
     """
     Segrega as partidas em treino e teste, permitindo que o modelo nunca veja um determinado grupo de jogadores ou
     escondendo os turnos mais avançados de cada jogador durante o treino.
-    
+
     Filtra o DataFrame pelas features selecionadas e produz os DataFrames de treino e teste para features e targets.
 
     Args:
-        features_df (pd.DataFrame): O DataFrame contendo os dados das partidas.
+        features_df (pd.DataFrame): O DataFrame contendo as features selecionadas do DF das partidas.
         final_features_list (List[str]): Lista das features selecionadas para o modelo.
         target_column (str): Nome da coluna target.
         n_test_players (int, opcional): Número de jogadores a serem amostrados aleatoriamente para o conjunto de teste.
         hide_advanced_turns (bool, opcional): Se True, usa a estratégia de esconder os turnos mais avançados no conjunto de teste.
         turn_threshold (int, opcional): Limite de turnos para segregar treino e teste. Os turnos maiores que esse valor serão usados como teste.
+        hide_players (bool, opcional): Se True, usa a estratégia de esconder jogadores do conjunto de teste.
 
     Retorna:
         Tuple: DataFrames de treino e teste para features e targets.
     """
     # Configura o logger geral
-    setup_logger("train_test_split")
+    logger = setup_logger("train_test_split")
+
+    # Pegando o ultimo arquivo do PartitionedDataset
+    selected_features_df = get_last_file(selected_features_df)
+    final_features_list = get_last_file(final_features_list)
     
     if hide_advanced_turns and turn_threshold is None:
         raise ValueError("Se `hide_advanced_turns` for True, `turn_threshold` deve ser fornecido.")
     
+    if hide_players and n_test_players is None:
+        raise ValueError("Se `hide_players` for True, `n_test_players` deve ser fornecido.")
+    
+    if hide_advanced_turns and hide_players:
+        raise ValueError("Apenas uma estratégia pode ser usada de cada vez: `hide_advanced_turns` ou `hide_players`.")
+    
     if hide_advanced_turns:
         # Estratégia de esconder turnos mais avançados
-        print(f"Usando a estratégia de esconder turnos mais avançados (turnos > {turn_threshold}).")
+        logger.info(f"Usando a estratégia de esconder turnos mais avançados (turnos > {turn_threshold}).")
         
         # Dividir os dados entre treino e teste com base no turn_threshold
-        train_df = features_df[features_df['turn'] <= turn_threshold]
-        test_df = features_df[features_df['turn'] > turn_threshold]
+        train_df = selected_features_df[selected_features_df['turn'] <= turn_threshold]
+        test_df = selected_features_df[selected_features_df['turn'] > turn_threshold]
     
-    else:
+    elif hide_players:
         # Estratégia de esconder jogadores
-        print(f"Usando a estratégia de esconder {n_test_players} jogadores.")
+        logger.info(f"Usando a estratégia de esconder {n_test_players} jogadores.")
         
         # Verifica se a quantidade de jogadores para o teste é válida
-        unique_players = features_df['name'].unique()
+        unique_players = selected_features_df['name'].unique()
         if n_test_players > len(unique_players):
             raise ValueError(f"O número de jogadores de teste ({n_test_players}) excede o número de jogadores únicos ({len(unique_players)}).")
         
         # Amostrando jogadores aleatoriamente
         test_players = random.sample(list(unique_players), n_test_players)
-        print(f"Jogadores selecionados para o conjunto de teste: {test_players}")
+        logger.info(f"Jogadores selecionados para o conjunto de teste: {test_players}")
         
         # Segregar os dados entre treino e teste com base nos jogadores amostrados
-        test_df = features_df[features_df['name'].isin(test_players)]
-        train_df = features_df[~features_df['name'].isin(test_players)]
+        test_df = selected_features_df[selected_features_df['name'].isin(test_players)]
+        train_df = selected_features_df[~selected_features_df['name'].isin(test_players)]
+    
+    else:
+        raise ValueError("Nenhuma estratégia foi selecionada. Use `hide_advanced_turns` ou `hide_players`.")
     
     # Filtrando apenas as features selecionadas
     train_features = train_df[final_features_list]
@@ -244,4 +270,4 @@ def train_test_split(
     train_target = train_df[[target_column]]
     test_target = test_df[[target_column]]
 
-    return train_features, test_features, train_target, test_target
+    return {run_key:train_features}, {run_key:test_features}, {run_key:train_target}, {run_key:test_target}

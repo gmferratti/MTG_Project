@@ -6,6 +6,7 @@ import zipfile
 import random
 
 from ..utils import setup_logger
+from ...config import run_key
 
 def get_deck_zip_from_web(        
         project_path: str,
@@ -198,11 +199,9 @@ def sample_decks(
     logger.info(f"Decks amostrados: {', '.join(sampled_keys)}")
     logger.info(f"Amostragem completa. {len(sampled_decks)} decks selecionados.")
 
-    
     # Remover o handler para evitar problemas futuros
     for handler in logger.handlers:
         handler.close()
         logger.removeHandler(handler)
 
     return sampled_decks
-

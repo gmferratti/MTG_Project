@@ -11,7 +11,9 @@ from faker import Faker
 from classes.deck import Deck
 from classes.player import Player
 from classes.player_tracker import PlayerTracker
-from src.mtg_project.pipelines.utils import setup_logger
+from src.mtg_project.pipelines.utils import setup_logger, get_last_file
+
+from ...config import run_key
 
 warnings.filterwarnings("ignore")
 
@@ -63,7 +65,7 @@ def assign_decks_to_players(
 
     # Configura o logger geral
     logger = setup_logger("validate_decks", log_filepath)
-    
+
     # Log de início da validação
     logger.info("Validating decks...")
 
@@ -104,6 +106,8 @@ def assign_decks_to_players(
         if not assigned:
             raise ValueError(f"No available decks left to assign to player '{player.name}'.")
 
+    players_with_decks = players
+
     logger.info("Deck assignment process completed.")
 
     # Remover o handler para evitar problemas futuros
@@ -111,7 +115,7 @@ def assign_decks_to_players(
         handler.close()
         logger.removeHandler(handler)
 
-    return players
+    return {run_key:pd.DataFrame(players_with_decks)}
 
 def simulate_player_matches(
         params: dict, 
@@ -141,6 +145,8 @@ def simulate_player_matches(
         - Player attributes at each turn.
         - Match number for each simulation.
     """
+    # Lendo os ultimos players com decks
+    players_with_decks = get_last_file(players_with_decks)
     
     # Atribuir os parâmetros
     max_mulligans = params["max_mulligans"]
@@ -188,4 +194,4 @@ def simulate_player_matches(
         handler.close()
         logger.removeHandler(handler)
     
-    return matches_dataframe
+    return {run_key:matches_dataframe}
