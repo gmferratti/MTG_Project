@@ -26,7 +26,7 @@ def create_simulation_pipeline(**kwargs) -> Pipeline:
             node(
                 func=simulate_player_matches,
                 inputs=["params:simulation", "players_with_decks"],
-                outputs="matches_dataframe",
+                outputs="matches_df",
                 name="simulate_player_matches_node"
             )
         ]

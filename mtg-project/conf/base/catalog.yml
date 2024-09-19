@@ -20,7 +20,7 @@ sampled_decks:
 
 players:
   type: pickle.PickleDataset
-  filepath: data/02_intermediate/sampled_decks.pkl
+  filepath: data/02_intermediate/players.pkl
 
 players_with_decks:
   type: partitions.PartitionedDataset

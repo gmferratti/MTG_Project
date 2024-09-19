@@ -53,7 +53,7 @@ def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
     logger = setup_logger("feature_engineering")
 
     # Pegando o ultimo arquivo do PartitionedDataset
-    matches_df = get_last_file(matches_df)
+    matches_df = get_last_file(matches_df)()
 
     logger.info("Criando variáveis cumulativas por jogador e partida...")
 
@@ -87,7 +87,7 @@ def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
 
     # Criar uma coluna binária para cada cor de mana
     for color in all_colors:
-        matches_df[f'{color}'] = (matches_df['deck_colors'].apply(lambda x: 1 if color in x else 0)).astype("category")
+        matches_df[f'{color}'] = (matches_df['deck_colors'].apply(lambda x: 1 if color in x else 0))
 
     # Remover a coluna original de cores do deck
     matches_df.drop(columns=['deck_colors'], inplace=True)
@@ -142,7 +142,7 @@ def feature_selection(
     logger.info("Iniciando o processo de seleção de features...")
 
     # Pegando o ultimo arquivo do PartitionedDataset
-    features_df = get_last_file(features_df)
+    features_df = get_last_file(features_df)()
 
     # Separar apenas colunas numéricas para o cálculo da correlação
     numeric_features_df = features_df.select_dtypes(include=[np.number])
@@ -222,8 +222,8 @@ def train_test_split(
     logger = setup_logger("train_test_split")
 
     # Pegando o ultimo arquivo do PartitionedDataset
-    selected_features_df = get_last_file(selected_features_df)
-    final_features_list = get_last_file(final_features_list)
+    selected_features_df = get_last_file(selected_features_df)()
+    final_features_list = get_last_file(final_features_list)()
     
     if hide_advanced_turns and turn_threshold is None:
         raise ValueError("Se `hide_advanced_turns` for True, `turn_threshold` deve ser fornecido.")

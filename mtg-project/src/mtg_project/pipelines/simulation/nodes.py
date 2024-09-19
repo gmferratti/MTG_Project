@@ -115,7 +115,7 @@ def assign_decks_to_players(
         handler.close()
         logger.removeHandler(handler)
 
-    return {run_key:pd.DataFrame(players_with_decks)}
+    return {run_key:players_with_decks}
 
 def simulate_player_matches(
         params: dict, 
@@ -146,7 +146,7 @@ def simulate_player_matches(
         - Match number for each simulation.
     """
     # Lendo os ultimos players com decks
-    players_with_decks = get_last_file(players_with_decks)
+    players_with_decks = get_last_file(players_with_decks)()
     
     # Atribuir os parâmetros
     max_mulligans = params["max_mulligans"]
