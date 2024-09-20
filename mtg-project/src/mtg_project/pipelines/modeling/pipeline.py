@@ -2,7 +2,8 @@ from kedro.pipeline import node, Pipeline
 from .nodes import (
     feature_engineering,
     feature_selection,
-    train_test_split
+    train_test_split,
+    fit_model
 )
 
 def create_modeling_pipeline(**kwargs) -> Pipeline:
@@ -41,5 +42,16 @@ def create_modeling_pipeline(**kwargs) -> Pipeline:
                 ],
                 name="split_train_test_node"
             ),
+            node(
+                func=fit_model,
+                inputs=[
+                    "train_features", 
+                    "train_target", 
+                    "params:modeling.model_selection.params_grid"
+                ],
+                outputs=["best_model", "best_hiper_params"],
+                name="fit_decision_tree_model_node",
+            ),
+            
         ]
     )

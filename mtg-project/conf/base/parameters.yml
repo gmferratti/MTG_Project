@@ -46,13 +46,6 @@ modeling:
       min_weight_fraction_leaf: [0.0, 0.1, 0.2]
     scoring_metric: "f1"
 
-# Pipeline de avaliação
-evaluation:
-  # Parâmetros para avaliação do modelo
-  metrics:
-    accuracy_threshold: 0.85
-    f1_threshold: 0.7
-  # Parâmetros para relatórios
-  reporting:
-    save_reports: true
-    report_format: "pdf"
+reporting:
+  initial_turn_plot: 10
+  final_turn_plot: 100

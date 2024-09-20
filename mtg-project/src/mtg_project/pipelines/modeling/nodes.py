@@ -271,3 +271,57 @@ def train_test_split(
     test_target = test_df[[target_column]]
 
     return {run_key:train_features}, {run_key:test_features}, {run_key:train_target}, {run_key:test_target}
+
+def fit_model(
+    train_features: dict,
+    train_target: dict,
+    param_grid: tuple,
+) -> str:
+    """
+    Ajusta um modelo de árvore de decisão com suporte a features temporais e realiza tuning de hiperparâmetros com GridSearchCV.
+    O modelo ajustado é salvo em um arquivo .pkl.
+
+    Args:
+        train_features (pd.DataFrame): DataFrame com as features de treino.
+        train_target (pd.DataFrame): DataFrame com a variável target de treino.
+        param_grid (dict): Dicionário com os hiperparâmetros a serem ajustados.
+        model_path (str): Caminho para salvar o modelo ajustado (.pkl).
+
+    Returns:
+        model_path (str): Caminho do arquivo do modelo ajustado salvo.
+    """
+    # Configurando o logger geral
+    logger = setup_logger("fit_model")
+    logger.info("Iniciando o ajuste do modelo e o tuning de hiperparâmetros.")
+
+    # Descompactando o modelo
+    train_features = train_features[run_key]()
+    train_target = train_target[run_key]()
+
+    # Criando o modelo base
+    model = DecisionTreeRegressor(random_state=42)
+    
+    logger.info("Configurando o GridSearchCV com a seguinte grade de hiperparâmetros:")
+    logger.info(param_grid)
+
+    # Configurando o GridSearchCV para tuning de hiperparâmetros
+    grid_search = GridSearchCV(
+        estimator=model,
+        param_grid=param_grid,
+        scoring='neg_mean_squared_error',
+        cv=5,
+        verbose=1
+    )
+    
+    # Ajustando o modelo com os dados de treino e realizando tuning
+    grid_search.fit(train_features, train_target)
+    
+    # Extraindo o melhor modelo e seus parâmetros
+    best_model = {run_key:grid_search.best_estimator_}
+    best_hiper_params = {run_key:grid_search.best_params_}
+
+    logger.info("O melhor modelo foi encontrado com os seguintes hiperparâmetros:")
+    logger.info(best_hiper_params)
+
+    return best_model, best_hiper_params
+
