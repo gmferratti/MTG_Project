@@ -13,7 +13,7 @@ que calculará a probabilidade do player curvar (maximizar suas jogadas entre tu
 
 ## Visão Geral do Projeto
 
-Inserir fluxograma aqui
+inserir fluxograma aqui
 
 ## Configuração Inicial
 
