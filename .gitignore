@@ -7,6 +7,3 @@ __pycache__
 # Ignore the data directory
 data/*
 .viz/*
-
-# Ignore the credentials file
-conf/base/*.json
