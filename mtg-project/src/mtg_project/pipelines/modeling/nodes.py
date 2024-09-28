@@ -324,4 +324,3 @@ def fit_model(
     logger.info(best_hiper_params)
 
     return best_model, best_hiper_params
-

@@ -17,3 +17,4 @@ pandas
 numpy ~= 2.0
 faker
 shap
+gcsfs

@@ -1,0 +1,2 @@
+_gcp:
+  bucket_url: "gcs://mana_curve_bucket/"

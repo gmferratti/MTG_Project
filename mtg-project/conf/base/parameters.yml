@@ -13,7 +13,7 @@ preprocessing:
     zip_folder: "data/01_raw/"
     log_folder: "data/01_raw/decks_log/"
     deck_cards: 40
-    sample_size_ratio: 0.1
+    sample_size_ratio: 0.25
 
 # pipeline de simulacao
 simulation:
