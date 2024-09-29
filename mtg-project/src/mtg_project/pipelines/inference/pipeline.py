@@ -1,10 +1,7 @@
-from kedro.pipeline import node, Pipeline
-from .nodes import (
-    feature_engineering,
-    feature_selection,
-    train_test_split,
-    fit_model
-)
+from kedro.pipeline import Pipeline, node
+
+from .nodes import feature_engineering, feature_selection, fit_model, train_test_split
+
 
 def create_modeling_pipeline(**kwargs) -> Pipeline:
     return Pipeline(
@@ -17,10 +14,11 @@ def create_modeling_pipeline(**kwargs) -> Pipeline:
             ),
             node(
                 func=feature_selection,
-                inputs=["features_df", 
-                        "params:modeling.feature_engineering.feat_corr_threshold"],
-                outputs=["selected_features_df",
-                         "selected_features_cols"],
+                inputs=[
+                    "features_df",
+                    "params:modeling.feature_engineering.feat_corr_threshold",
+                ],
+                outputs=["selected_features_df", "selected_features_cols"],
                 name="feature_selection_node",
             ),
             node(
@@ -40,18 +38,17 @@ def create_modeling_pipeline(**kwargs) -> Pipeline:
                     "train_target",
                     "test_target",
                 ],
-                name="split_train_test_node"
+                name="split_train_test_node",
             ),
             node(
                 func=fit_model,
                 inputs=[
-                    "train_features", 
-                    "train_target", 
-                    "params:modeling.model_selection.params_grid"
+                    "train_features",
+                    "train_target",
+                    "params:modeling.model_selection.params_grid",
                 ],
                 outputs=["best_model", "best_hiper_params"],
                 name="fit_decision_tree_model_node",
             ),
-            
         ]
     )

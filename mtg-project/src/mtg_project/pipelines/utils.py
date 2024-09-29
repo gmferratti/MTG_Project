@@ -2,20 +2,21 @@
 
 import logging
 
+
 def setup_logger(logger_name: str, log_folder: str = None) -> logging.Logger:
     """
     Configura o logger para salvar os logs em um arquivo ou exibi-los no terminal.
-    
+
     Args:
         logger_name (str): Nome do logger a ser configurado.
-        log_folder (str, optional): Caminho do arquivo onde os logs serão salvos. 
+        log_folder (str, optional): Caminho do arquivo onde os logs serão salvos.
         Se for None, o logger exibirá as informações no terminal.
-    
+
     Returns:
         logging.Logger: Logger configurado para salvar logs em arquivo ou exibi-los no terminal.
     """
     logger = logging.getLogger(logger_name)
-    
+
     # Evita adicionar múltiplos handlers para o mesmo logger
     if not logger.hasHandlers():
         logger.setLevel(logging.INFO)
@@ -48,6 +49,7 @@ def setup_logger(logger_name: str, log_folder: str = None) -> logging.Logger:
 
     return logger
 
+
 def get_last_file(partitioned_data):
     """
     Obtém o last file da partição mais recente de um PartitionedDataset.
@@ -60,8 +62,8 @@ def get_last_file(partitioned_data):
     """
     # Obter a chave da partição mais recente
     latest_partition = max(partitioned_data.keys())
-    
+
     # Obter os dados da partição mais recente
     data = partitioned_data[latest_partition]
-    
+
     return data

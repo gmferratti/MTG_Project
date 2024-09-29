@@ -1,17 +1,13 @@
 """Preprocessing nodes."""
 
 import os
-import requests
-import zipfile
 import random
+import zipfile
+import requests
+import logging
 
-from ..utils import setup_logger
-from ...config import run_key
 
-def get_deck_zip_from_web(        
-        project_path: str,
-        zip_url: str,  
-        zip_folder: str) -> None:
+def get_deck_zip_from_web(project_path: str, zip_url: str, zip_folder: str) -> None:
     """
     Baixa um arquivo ZIP de um URL, o descompacta em uma pasta temporária e salva os arquivos JSON
     no subdiretório 'decks_json' dentro da pasta especificada.
@@ -25,11 +21,11 @@ def get_deck_zip_from_web(
         None: A função salva os arquivos JSON na pasta especificada e não retorna nada.
     """
     # Configura o logger geral com o nome "get_deck_zip_logger"
-    logger = setup_logger("get_deck_zip_logger")
+    logger = logging.getLogger(__name__)
 
     # Concatenar o caminho completo de zip_folder com project_path (que é a raiz)
     full_output_path = os.path.join(project_path, zip_folder)
-    
+
     # Criar a pasta raiz se ela não existir
     os.makedirs(full_output_path, exist_ok=True)
 
@@ -57,11 +53,14 @@ def get_deck_zip_from_web(
             if file_name.endswith('.json'):
                 # Definir o caminho de destino do arquivo extraído no subdiretório 'decks_json'
                 output_file_path = os.path.join(decks_json_path, file_name)
-                
+
                 # Ler e salvar o arquivo JSON diretamente no caminho especificado
-                with zip_ref.open(file_name) as json_file, open(output_file_path, "wb") as out_file:
+                with (
+                    zip_ref.open(file_name) as json_file,
+                    open(output_file_path, "wb") as out_file,
+                ):
                     out_file.write(json_file.read())
-    
+
     logger.info(f"Arquivos JSON extraídos com sucesso em: {decks_json_path}")
 
     # Remover o arquivo zip após extração
@@ -73,10 +72,10 @@ def get_deck_zip_from_web(
         handler.close()
         logger.removeHandler(handler)
 
+
 def pp_decks_from_json_files(
-        decks_json_partitioned: dict, 
-        deck_cards: int, 
-        log_folder: str) -> dict:
+    decks_json_partitioned: dict, deck_cards: int, log_folder: str
+) -> dict:
     """
     Processa todos os decks JSON fornecidos pelo PartitionedDataSet e salva no formato .txt.
 
@@ -91,14 +90,8 @@ def pp_decks_from_json_files(
     Returns:
         dict: Dicionário de decks processados, onde as chaves são os nomes dos arquivos e os valores são as decklists.
     """
-    # Caminho do arquivo de log
-    log_filepath = os.path.join(log_folder, 'decks_selection_log.txt')
-
-    # Cria a pasta de log se ela não existir
-    os.makedirs(log_folder, exist_ok=True)
-
-    # Chama a função para configurar o logger
-    logger = setup_logger("pp_decks_from_json_files", log_filepath)
+    # Configura o logger
+    logger = logging.getLogger(__name__)
 
     # Função para extrair o nome do deck diretamente do JSON
     def get_deck_name(data):
@@ -133,7 +126,7 @@ def pp_decks_from_json_files(
 
         # Verificar se o deck tem pelo menos deck_cards no mainboard
         if count_mainboard_cards(data) >= deck_cards:
-            
+
             # Gerar a decklist
             decklist = generate_decklist(data)
 
@@ -146,7 +139,9 @@ def pp_decks_from_json_files(
 
             logger.info(f"Decklist {output_file_name} gerada com sucesso!")
         else:
-            logger.info(f"Deck {file_name} ignorado (menos de {deck_cards} cartas no mainBoard).")
+            logger.info(
+                f"Deck {file_name} ignorado (menos de {deck_cards} cartas no mainBoard)."
+            )
 
     # Remover o handler para evitar problemas futuros
     for handler in logger.handlers:
@@ -157,14 +152,13 @@ def pp_decks_from_json_files(
 
 
 def sample_decks(
-        decks_txt_partitioned: dict, 
-        sample_size: float, 
-        log_folder: str) -> dict:
+    decks_txt_partitioned: dict, sample_size: float, log_folder: str
+) -> dict:
     """
     Amostra os decks no formato .txt com base no sample_size e retorna um dicionário de paths (pkl).
 
     Args:
-        decks_txt_partitioned (dict): Dicionário de decks onde as chaves são nomes de arquivos e os valores 
+        decks_txt_partitioned (dict): Dicionário de decks onde as chaves são nomes de arquivos e os valores
         são funções que retornam o conteúdo do deck.
         sample_size (float): A fração da população original que será usada para amostragem (valor entre 0 e 1).
         log_folder (str): Caminho da pasta para salvar os logs.
@@ -172,28 +166,23 @@ def sample_decks(
     Returns:
         dict: Dicionário com os caminhos dos decks amostrados.
     """
-
-    # Caminho do arquivo de log
-    log_filepath = os.path.join(log_folder, 'decks_sampling_log.txt')
-
-    # Cria a pasta de log se ela não existir
-    os.makedirs(log_folder, exist_ok=True)
-
-    # Configurar o logger para salvar no arquivo .txt
-    logger = setup_logger('decks_sampling_logger', log_filepath)
+    # Logger para a função
+    logger = logging.getLogger(__name__)
 
     # Número total de decks disponíveis
     total_decks = len(decks_txt_partitioned)
-    
+
     # Calcular o tamanho da amostra
     target_sample_size = int(total_decks * sample_size)
 
     # Amostra aleatória da população
     logger.info(f"Amostrando {target_sample_size} decks de um total de {total_decks}.")
     sampled_keys = random.sample(list(decks_txt_partitioned.keys()), target_sample_size)
-    
+
     # Criar dicionário contendo os paths dos decks amostrados
-    sampled_decks = {key: os.path.join('data/01_raw/decks_txt', key) for key in sampled_keys}
+    sampled_decks = {
+        key: os.path.join('data/01_raw/decks_txt', key) for key in sampled_keys
+    }
 
     # Logar os decks escolhidos
     logger.info(f"Decks amostrados: {', '.join(sampled_keys)}")

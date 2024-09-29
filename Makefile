@@ -1,25 +1,18 @@
+# Makefile
 create-env:
-	conda create -n mtg_curve_env python=3.12
-	echo "source $(shell conda info --base)/etc/profile.d/conda.sh && conda activate mtg_curve_env && pip install -r requirements.txt" > temp_script.sh
-	bash temp_script.sh
-	rm temp_script.sh
-	
-run:
+    python -m venv venv
+    venv/Scripts/python -m pip install --upgrade pip
+    venv/Scripts/python -m pip install -r mtg-project/src/mtg_project/requirements.txt
 
+run:
+    cmd /c "cd mtg-project && ..\\venv\\Scripts\\python -m kedro run"
 
 clean:
-	rm -rf __pycache__
-	rm -rf *.pyc
-	rm -rf .pytest_cache
+    cmd /c "if exist __pycache__ rmdir /s /q __pycache__"
+    cmd /c "if exist .pytest_cache rmdir /s /q .pytest_cache"
+    cmd /c "for /R %i in (*.pyc) do del /f /q \"%i\""
 
-lint-all: # verifica e formata os arquivos
-	cd mtg-project && \
-	black . && \
-	flake8 && \
-	isort .
+lint-all:
+    cmd /c "cd mtg-project && ..\\venv\\Scripts\\python -m black . && ..\\venv\\Scripts\\python -m flake8 && ..\\venv\\Scripts\\python -m isort ."
 
-lint: # apenas verifica
-	cd mtg-project && \
-	flake8 . && \
-	black --check . && \
-	isort --check .
+# Obs. I am using pymake instead of make

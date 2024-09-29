@@ -1,17 +1,17 @@
 """Simulation nodes."""
 
-import pandas as pd
-import random
 import os
+import random
 import warnings
+import logging
+import pandas as pd
 
-from typing import List, Dict, Callable
 from faker import Faker
+from typing import Callable, Dict, List
 
 from classes.deck import Deck
 from classes.player import Player
 from classes.player_tracker import PlayerTracker
-from src.mtg_project.pipelines.utils import setup_logger, get_last_file
 
 warnings.filterwarnings("ignore")
 
@@ -27,20 +27,22 @@ def create_players(n_players: int):
     """
     # Inicializando o gerador de dados falsos Faker
     fake = Faker()
-    
+
     # Gerando uma lista de nomes aleatórios usando o Faker
-    player_names = [fake.first_name() + " " + fake.last_name() for _ in range(n_players)]
-    
+    player_names = [
+        fake.first_name() + " " + fake.last_name() for _ in range(n_players)
+    ]
+
     # Criando uma lista de objetos Player a partir dos nomes gerados
     players = [Player(name) for name in player_names]
 
     # Retornando a lista de objetos Player
     return players
 
+
 def assign_decks_to_players(
-        players: List[Player], 
-        sampled_decks: Dict[str, str],
-        log_folder: str) -> List[Player]:
+    players: List[Player], sampled_decks: Dict[str, str], log_folder: str
+) -> List[Player]:
     """
     Função para atribuir decks aleatórios a cada player na lista de players.
 
@@ -55,21 +57,15 @@ def assign_decks_to_players(
     Returns:
         List[Player]: Lista de objetos Player com decks atribuídos.
     """
-    # Caminho do arquivo de log
-    log_filepath = os.path.join(log_folder, 'decks_assignment.txt')
-
-    # Cria a pasta de log se ela não existir
-    os.makedirs(log_folder, exist_ok=True)
-
-    # Configura o logger geral
-    logger = setup_logger("validate_decks", log_filepath)
+    # Configurar o logger para a função
+    logger = logging.getLogger(__name__)
 
     # Log de início da validação
     logger.info("Validating decks...")
 
     # Convertemos as chaves do dicionário para uma lista de nomes de decks disponíveis
     available_decks = list(sampled_decks.keys())
-    
+
     for player in players:
         assigned = False
         while not assigned and available_decks:
@@ -89,20 +85,23 @@ def assign_decks_to_players(
                 # Atribui o deck ao player
                 player.assign_deck(deck)
                 logger.info(f"Deck '{deck_name}' assigned to player '{player.name}'")
-                
+
                 # Remove o deck da lista de decks disponíveis para evitar reutilização
                 available_decks.remove(deck_name)
 
                 assigned = True  # Deck atribuído com sucesso
             except Exception as e:
                 # Em caso de erro, tenta outro deck
-                logger.error(f"Failed to assign deck '{deck_name}' to player '{player.name}': {e}")
+                logger.error(
+                    f"Failed to assign deck '{deck_name}' to player '{player.name}': {e}"
+                )
                 continue
-        
-        
+
         # Se não houver mais decks disponíveis e não conseguir atribuir, lança um erro
         if not assigned:
-            raise ValueError(f"No available decks left to assign to player '{player.name}'.")
+            raise ValueError(
+                f"No available decks left to assign to player '{player.name}'."
+            )
 
     players_with_decks = players
 
@@ -116,15 +115,15 @@ def assign_decks_to_players(
     # Preparar o dicionário para o PartitionedDataset
     players_with_decks = {}
     for player in players:
-        # Nome da partição inclui run_key e nome do jogador
+        # Nome da partição inclui o nome do jogador
         partition_name = f"{player.name.replace(' ', '_')}"
         players_with_decks[partition_name] = player
 
     return players_with_decks
 
 def simulate_player_matches(
-        params: dict, 
-        players_with_decks: Dict[str, Callable]) -> Dict[str, pd.DataFrame]:
+    params: dict, players_with_decks: Dict[str, Callable]
+) -> Dict[str, pd.DataFrame]:
     """
     Simula partidas de Magic: The Gathering para uma lista de jogadores com base nos parâmetros fornecidos.
 
@@ -137,13 +136,10 @@ def simulate_player_matches(
         Dicionário onde as chaves são os nomes dos arquivos (e.g., 'Jeremy_Wiggins.pkl')
         e os valores são métodos que carregam objetos Player.
 
-    run_key : str
-        Chave que identifica a execução atual (pode ser uma data ou outro identificador).
-
     Retorna:
     --------
     Dict[str, pd.DataFrame]
-        Dicionário onde as chaves são combinações de run_key, nome do jogador e número da partida,
+        Dicionário onde as chaves são combinações nome do jogador e número da partida,
         e os valores são DataFrames contendo os dados das partidas.
     """
     # Carregar os jogadores chamando os métodos de carregamento
@@ -165,14 +161,8 @@ def simulate_player_matches(
     matches_per_player = params["matches_per_player"]
     log_folder = params["log_folder"]
 
-    # Caminho do arquivo de log
-    log_filepath = os.path.join(log_folder, 'player_matches.txt')
-
-    # Criar a pasta de log se ela não existir
-    os.makedirs(log_folder, exist_ok=True)
-
-    # Configurar o logger geral
-    logger = setup_logger("player_matches", log_filepath)
+    # Configurar o logger para a função
+    logger = logging.getLogger(__name__)
 
     # Log de início da simulação
     logger.info("Iniciando simulações...")
@@ -183,25 +173,27 @@ def simulate_player_matches(
     # Loop através dos jogadores e realizar as simulações de partidas
     for partition_name, player in loaded_players.items():
         for match_num in range(1, matches_per_player + 1):
-            logger.info(f"Simulando partida {match_num} para o jogador '{player.name}'...")
+            logger.info(
+                f"Simulando partida {match_num} para o jogador '{player.name}'..."
+            )
 
             # Inicializa o tracker para armazenar os dados da partida atual
             tracker = PlayerTracker()
 
             # Simula uma partida
             player.play_a_match(
-                tracker, 
-                max_mulligans, 
-                mulligan_prob, 
-                max_turns, 
-                hand_size_stop, 
-                extra_land_prob
+                tracker,
+                max_mulligans,
+                mulligan_prob,
+                max_turns,
+                hand_size_stop,
+                extra_land_prob,
             )
 
             # Obter os dados da partida atual
             match_dataframe = tracker.get_data()
 
-            # Construir o nome da partição usando run_key, nome do jogador e número da partida
+            # Construir o nome da partição usando nome do jogador e número da partida
             player_name_sanitized = player.name.replace(' ', '_')
             match_num_filled = str(match_num).zfill(3)
             partition_key = f"{player_name_sanitized}/match_{match_num_filled}"

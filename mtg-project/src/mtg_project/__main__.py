@@ -1,6 +1,7 @@
 """mtg_project file for ensuring the package is executable
 as `mtg-project` and `python -m mtg_project`
 """
+
 import sys
 from pathlib import Path
 from typing import Any

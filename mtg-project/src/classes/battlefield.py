@@ -1,5 +1,6 @@
 from mtgsdk import Card
 
+
 class Battlefield:
     """
     A class to represent the battlefield, where lands are played and produce mana.
@@ -27,10 +28,10 @@ class Battlefield:
     def calculate_mana_pool(self) -> int:
         """
         Calculates the total mana pool based on the lands on the battlefield.
-        
+
         Returns:
         --------
         int
             The total available mana from all lands on the battlefield.
         """
-        return len(self.lands) 
+        return len(self.lands)

@@ -1,14 +1,17 @@
-import random
-from mtgsdk import Card
-from classes.deck import Deck
 import logging
+import random
+
+from mtgsdk import Card
+
+from classes.deck import Deck
 
 logger = logging.getLogger(__name__)
+
 
 class Library:
     """
     A class to represent the library (deck) of a player in a Magic: The Gathering game.
-    
+
     Attributes:
     -----------
     cards : list of Card
@@ -18,7 +21,7 @@ class Library:
     def __init__(self, deck: Deck):
         """
         Constructs all the necessary attributes for the Library object.
-        
+
         Parameters:
         -----------
         deck : Deck
@@ -26,14 +29,14 @@ class Library:
         """
         if not deck.is_valid():
             raise ValueError("The deck provided is not valid.")
-        
+
         self.cards = deck.cards[:]
         self.library_size = len(self.cards)
 
     def draw_card(self):
         """
         Draws a single card from the library.
-        
+
         Returns:
         --------
         Card
@@ -41,7 +44,7 @@ class Library:
         """
         if len(self.cards) == 0:
             raise ValueError("Cannot draw from an empty library.")
-        
+
         popped_card = self.cards.pop(0)
         self.library_size = len(self.cards)
 
@@ -50,7 +53,7 @@ class Library:
     def return_card(self, card: Card):
         """
         Returns a card to the library.
-        
+
         Parameters:
         -----------
         card : Card
@@ -70,7 +73,7 @@ class Library:
     def __len__(self):
         """
         Returns the number of cards in the library.
-        
+
         Returns:
         --------
         int
@@ -81,7 +84,7 @@ class Library:
     def __repr__(self):
         """
         Returns a string representation of the library.
-        
+
         Returns:
         --------
         str

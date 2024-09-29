@@ -1,14 +1,12 @@
 from mtgsdk import Card
+
 from classes.library import Library
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from classes.player import Player
 
-class Hand():
+class Hand:
     """
     A class to represent a hand of cards for a player.
-    
+
     Attributes:
     -----------
     cards : list of Card
@@ -33,7 +31,7 @@ class Hand():
     def draw(self, library: 'Library', num_cards: int = 1):
         """
         Draws a specified number of cards from the library into the hand.
-        
+
         Parameters:
         -----------
         library : Library
@@ -44,7 +42,7 @@ class Hand():
         for _ in range(min(num_cards, len(library))):
             drawn_card = library.draw_card()
             self.cards.append(drawn_card)
-    
+
     def organize(self):
         """
         Organizes the hand by placing land cards at the beginning of the list
@@ -57,11 +55,11 @@ class Hand():
     def is_above_hand_limit(self) -> bool:
         """Verifica se o número de cartas na mão está acima do limite permitido."""
         return len(self.cards) > self.MAX_HAND_SIZE
-    
+
     def is_balanced(self) -> bool:
         """
         Checks if the hand has a balanced number of lands (2 to 4 lands).
-        
+
         Returns:
         --------
         bool
@@ -73,7 +71,7 @@ class Hand():
     def is_playable(self) -> bool:
         """
         Determines if the hand is playable in the early turns of the game.
-        
+
         Returns:
         --------
         bool
@@ -86,7 +84,8 @@ class Hand():
             return False
 
         playable_spells = [
-            card for card in self.cards
+            card
+            for card in self.cards
             if 'Land' not in card.type and card.cmc <= land_count
         ]
 

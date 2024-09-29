@@ -2,8 +2,6 @@
 
 # parametros globais
 global:
-  # garantir que está igual em globals.yml
-  run_key: "2024-09-29"
   user:
     # mude para o seu proprio diretorio
     project_path: "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_03/mtg-project"
@@ -19,8 +17,8 @@ preprocessing:
 
 # pipeline de simulacao
 simulation:
-  n_players: 5
-  matches_per_player: 100
+  n_players: 10
+  matches_per_player: 15
   hand_size_stop: 0
   max_turns: 12
   max_mulligans: 3
