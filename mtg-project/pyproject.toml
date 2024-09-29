@@ -32,3 +32,15 @@ namespaces = false
 
 [tool.kedro_telemetry]
 project_id = "d4c5bd94eff843b4b4949a9b7e8ff402"
+
+[tool.isort]
+profile = "black"
+skip_glob = ['notebooks/**']
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+skip-string-normalization = true
+exclude = '''
+/notebooks/
+'''
