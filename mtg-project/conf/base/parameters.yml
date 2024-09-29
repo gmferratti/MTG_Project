@@ -17,8 +17,8 @@ preprocessing:
 
 # pipeline de simulacao
 simulation:
-  n_players: 10
-  matches_per_player: 15
+  n_players: 6
+  matches_per_player: 10
   hand_size_stop: 0
   max_turns: 12
   max_mulligans: 3
