@@ -10,11 +10,13 @@ clean:
 	rm -rf .pytest_cache
 
 lint-all: # verifica e formata os arquivos
+	cd mtg-project && \
 	black . && \
 	flake8 && \
 	isort .
 
 lint: # apenas verifica
-	flake8 .
-	black --check .
+	cd mtg-project && \
+	flake8 . && \
+	black --check . && \
 	isort --check .
