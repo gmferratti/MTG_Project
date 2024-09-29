@@ -3,66 +3,54 @@
 import pandas as pd
 import numpy as np
 import random
+import shap
+import pickle
 
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
-from typing import List
+from typing import List, Dict, Any
 from .constants import (
     derived_feats, 
     key_cols)
 from ..utils import setup_logger, get_last_file
 from ...config import run_key
 
-def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Realiza engenharia de features nos dados das partidas de Magic: The Gathering.
+def feature_engineering(matches_partitions: Dict[str, Any]) -> pd.DataFrame:
+    import pandas as pd
+    import numpy as np
+    from typing import Any, Dict
 
-    Esta função cria variáveis cumulativas, baseadas em razões, lag features e rolling features
-    a partir dos dados das partidas, e prepara o dataset para modelagem. Além disso, realiza a codificação
-    de variáveis categóricas e trata valores ausentes ou infinitos, garantindo que os dados estejam adequados
-    para uso em modelos preditivos.
-
-    Args:
-        matches_df (pd.DataFrame): DataFrame contendo os dados das partidas, com colunas como 'mana_pool', 
-        'spent_mana', 'spells_played', 'lands_played', 'turn', e 'deck_colors', entre outras.
-
-    Retorna:
-        pd.DataFrame: DataFrame com novas features calculadas, incluindo:
-        
-        - 'cum_mana_pool': Soma cumulativa do mana disponível ao longo dos turnos para cada jogador e partida.
-        - 'cum_spent_mana': Soma cumulativa do mana gasto ao longo dos turnos para cada jogador e partida.
-        - 'cum_spells_played': Soma cumulativa dos feitiços jogados ao longo dos turnos para cada jogador e partida.
-        - 'spell_ratio': Razão entre os feitiços jogados e o número de turnos (feitiços por turno).
-        - 'land_ratio': Razão entre os terrenos jogados e o número de turnos (terrenos por turno).
-        - 'mana_curve_efficiency': Eficiência da curva de mana, definida como a razão entre o mana gasto 
-          cumulativo e o mana acumulado ao longo dos turnos.
-        - 'mana_curve_efficiency_lag_1': Valor de 'mana_curve_efficiency' no turno anterior.
-        - 'mana_curve_efficiency_lag_2': Valor de 'mana_curve_efficiency' dois turnos anteriores.
-        - 'spell_ratio_lag_1': Valor de 'spell_ratio' no turno anterior.
-        - 'land_ratio_lag_1': Valor de 'land_ratio' no turno anterior.
-        - 'rolling_mean_mana_curve_efficiency_3': Média móvel de 'mana_curve_efficiency' em uma janela de 3 turnos.
-        - 'rolling_mean_spell_ratio_3': Média móvel de 'spell_ratio' em uma janela de 3 turnos.
-        - 'rolling_mean_land_ratio_3': Média móvel de 'land_ratio' em uma janela de 3 turnos.
-        - Colunas binárias codificadas em One-Hot para representar as cores de mana ('W', 'U', 'B', 'R', 'G').
-
-    A função também lida com erros de divisão, substituindo valores infinitos por 0, e preenche valores 
-    ausentes na variável 'mana_curve_efficiency'.
-    """
     # Configura o logger geral
     logger = setup_logger("feature_engineering")
 
-    # Pegando o ultimo arquivo do PartitionedDataset
-    matches_df = get_last_file(matches_df)()
+    # Lista para armazenar os DataFrames carregados
+    dataframes = []
+
+    # Iterar sobre as partições e carregar cada DataFrame
+    for partition_name, dataset in matches_partitions.items():
+        logger.info(f"Carregando partição: {partition_name}")
+        # Carrega o DataFrame chamando o método diretamente
+        df = dataset()
+        # Adicionar informações sobre o jogador e a partida
+        player_name, match_id = partition_name.split('/')
+        df['player_name'] = player_name
+        df['match_id'] = match_id
+        # Adicionar o DataFrame à lista
+        dataframes.append(df)
+
+    # Concatenar todos os DataFrames em um único DataFrame
+    matches_df = pd.concat(dataframes, ignore_index=True)
 
     logger.info("Criando variáveis cumulativas por jogador e partida...")
 
     # Garantir que 'spent_mana' esteja no formato correto
     matches_df["spent_mana"] = matches_df["spent_mana"].astype(int)
 
-    # Criação de variáveis cumulativas por 'name' e 'match'
-    matches_df['cum_mana_pool'] = matches_df.groupby(['name', 'match'])['mana_pool'].cumsum()
-    matches_df["cum_spent_mana"] = matches_df.groupby(['name', 'match'])["spent_mana"].cumsum()
+    # Criação de variáveis cumulativas por 'player_name' e 'match_id'
+    matches_df['cum_mana_pool'] = matches_df.groupby(['player_name', 'match_id'])['mana_pool'].cumsum()
+    matches_df["cum_spent_mana"] = matches_df.groupby(['player_name', 'match_id'])["spent_mana"].cumsum()
 
     logger.info("Criando variáveis de razão...")
 
@@ -85,37 +73,53 @@ def feature_engineering(matches_df: pd.DataFrame) -> pd.DataFrame:
 
     logger.info("Codificando cores de mana (One-Hot Encoding)...")
 
+    # Certificar-se de que a coluna 'deck_colors' é do tipo string
+    matches_df['deck_colors'] = matches_df['deck_colors'].astype(str)
+    # Substituir 'nan' por string vazia
+    matches_df['deck_colors'].replace('nan', '', inplace=True)
+
     # Criar uma coluna binária para cada cor de mana
     for color in all_colors:
-        matches_df[f'{color}'] = (matches_df['deck_colors'].apply(lambda x: 1 if color in x else 0))
+        matches_df[f'{color}'] = matches_df['deck_colors'].apply(lambda x: 1 if color in x else 0)
 
     # Remover a coluna original de cores do deck
     matches_df.drop(columns=['deck_colors'], inplace=True)
 
-    # Cria uma coluna com a quantidade de cores total do deck
+    # Criar uma coluna com a quantidade de cores total do deck
     matches_df['n_colors'] = matches_df[all_colors].sum(axis=1)
 
     logger.info("Criando lag features...")
 
+    # Ordenar o DataFrame para garantir que os shifts e rollings funcionem corretamente
+    matches_df.sort_values(by=['player_name', 'match_id', 'turn'], inplace=True)
+
     # Lag Features: Captura os valores dos turnos anteriores
-    matches_df['mana_curve_efficiency_lag_1'] = matches_df['mana_curve_efficiency'].shift(1)
-    matches_df['mana_curve_efficiency_lag_2'] = matches_df['mana_curve_efficiency'].shift(2)
-    matches_df['spell_ratio_lag_1'] = matches_df['spell_ratio'].shift(1)
-    matches_df['land_ratio_lag_1'] = matches_df['land_ratio'].shift(1)
+    matches_df['mana_curve_efficiency_lag_1'] = matches_df.groupby(['player_name', 'match_id'])['mana_curve_efficiency'].shift(1)
+    matches_df['mana_curve_efficiency_lag_2'] = matches_df.groupby(['player_name', 'match_id'])['mana_curve_efficiency'].shift(2)
+    matches_df['spell_ratio_lag_1'] = matches_df.groupby(['player_name', 'match_id'])['spell_ratio'].shift(1)
+    matches_df['land_ratio_lag_1'] = matches_df.groupby(['player_name', 'match_id'])['land_ratio'].shift(1)
+
+    # Preencher valores ausentes nas lag features
+    lag_features = ['mana_curve_efficiency_lag_1', 'mana_curve_efficiency_lag_2', 'spell_ratio_lag_1', 'land_ratio_lag_1']
+    matches_df[lag_features] = matches_df[lag_features].fillna(0)
 
     logger.info("Criando rolling features...")
 
     # Rolling Features: Médias móveis para capturar tendências temporais
-    matches_df['rolling_mean_mana_curve_efficiency_3'] = matches_df['mana_curve_efficiency'].rolling(window=3).mean()
-    matches_df['rolling_mean_spell_ratio_3'] = matches_df['spell_ratio'].rolling(window=3).mean()
-    matches_df['rolling_mean_land_ratio_3'] = matches_df['land_ratio'].rolling(window=3).mean()
+    matches_df['rolling_mean_mana_curve_efficiency_3'] = matches_df.groupby(['player_name', 'match_id'])['mana_curve_efficiency']\
+        .rolling(window=3, min_periods=1).mean().reset_index(level=['player_name', 'match_id'], drop=True)
+    matches_df['rolling_mean_spell_ratio_3'] = matches_df.groupby(['player_name', 'match_id'])['spell_ratio']\
+        .rolling(window=3, min_periods=1).mean().reset_index(level=['player_name', 'match_id'], drop=True)
+    matches_df['rolling_mean_land_ratio_3'] = matches_df.groupby(['player_name', 'match_id'])['land_ratio']\
+        .rolling(window=3, min_periods=1).mean().reset_index(level=['player_name', 'match_id'], drop=True)
 
     # Tratamento de valores nulos gerados pelos shifts e rolling
     matches_df.fillna(0, inplace=True)
 
     logger.info("Engenharia de features concluída.")
 
-    return {run_key:matches_df}
+    # Retornar o DataFrame final
+    return matches_df
 
 def feature_selection(
         features_df: pd.DataFrame,
@@ -140,9 +144,6 @@ def feature_selection(
     # Configura o logger geral
     logger = setup_logger("feature_selection")
     logger.info("Iniciando o processo de seleção de features...")
-
-    # Pegando o ultimo arquivo do PartitionedDataset
-    features_df = get_last_file(features_df)()
 
     # Separar apenas colunas numéricas para o cálculo da correlação
     numeric_features_df = features_df.select_dtypes(include=[np.number])
@@ -189,7 +190,7 @@ def feature_selection(
         handler.close()
         logger.removeHandler(handler)
 
-    return {run_key: features_cleaned}, {run_key:selected_features_cols}
+    return features_cleaned, selected_features_cols
 
 
 def train_test_split(
@@ -221,10 +222,6 @@ def train_test_split(
     # Configura o logger geral
     logger = setup_logger("train_test_split")
 
-    # Pegando o ultimo arquivo do PartitionedDataset
-    selected_features_df = get_last_file(selected_features_df)()
-    final_features_list = get_last_file(final_features_list)()
-    
     if hide_advanced_turns and turn_threshold is None:
         raise ValueError("Se `hide_advanced_turns` for True, `turn_threshold` deve ser fornecido.")
     
@@ -270,11 +267,11 @@ def train_test_split(
     train_target = train_df[[target_column]]
     test_target = test_df[[target_column]]
 
-    return {run_key:train_features}, {run_key:test_features}, {run_key:train_target}, {run_key:test_target}
+    return train_features, test_features, train_target, test_target
 
 def fit_model(
-    train_features: dict,
-    train_target: dict,
+    train_features: pd.DataFrame,
+    train_target: pd.DataFrame,
     param_grid: tuple,
 ) -> str:
     """
@@ -293,10 +290,6 @@ def fit_model(
     # Configurando o logger geral
     logger = setup_logger("fit_model")
     logger.info("Iniciando o ajuste do modelo e o tuning de hiperparâmetros.")
-
-    # Descompactando o modelo
-    train_features = train_features[run_key]()
-    train_target = train_target[run_key]()
 
     # Criando o modelo base
     model = DecisionTreeRegressor(random_state=42)
@@ -317,10 +310,68 @@ def fit_model(
     grid_search.fit(train_features, train_target)
     
     # Extraindo o melhor modelo e seus parâmetros
-    best_model = {run_key:grid_search.best_estimator_}
-    best_hiper_params = {run_key:grid_search.best_params_}
+    best_model = grid_search.best_estimator_
+    best_hiper_params = grid_search.best_params_
 
     logger.info("O melhor modelo foi encontrado com os seguintes hiperparâmetros:")
     logger.info(best_hiper_params)
 
     return best_model, best_hiper_params
+
+def predict_and_evaluate_model(
+        model: pickle, 
+        test_features: pd.DataFrame, 
+        test_target: pd.Series) -> tuple:
+    """
+    Carrega o modelo salvo, faz previsões nos dados de teste, avalia o modelo e calcula valores SHAP.
+
+    Args:
+        model (pickle): Arquivo do modelo ajustado.
+        test_features (pd.DataFrame): DataFrame com as features de teste.
+        test_labels (pd.Series): Rótulos reais para avaliação do modelo.
+
+    Returns:
+        y_pred (pd.Series): Previsões do modelo.
+        shap_values (pd.DataFrame): Valores SHAP para interpretação do modelo.
+        error_metrics (dict): Métricas de erro do modelo (MSE, MAE, R2).
+    """
+    # Configura o logger geral
+    logger = setup_logger("predict_and_evaluate_model")
+
+    logger.info("Carregando o modelo...")
+    logger.info("Fazendo previsões nos dados de teste.")
+    
+    # Desempacotando as variaveis
+    test_features = test_features
+    test_target = test_target
+
+    # Fazendo previsões
+    predicted_target = model.predict(test_features)
+    
+    # Calculando as métricas de erro
+    logger.info("Calculando as métricas de erro...")
+    mse = mean_squared_error(test_target, predicted_target)
+    mae = mean_absolute_error(test_target, predicted_target)
+    r2 = r2_score(test_target, predicted_target)
+    
+    error_metrics = {
+        "mean_squared_error": mse,
+        "mean_absolute_error": mae,
+        "r2_score": r2
+    }
+    
+    # Calculando os valores SHAP
+    logger.info("Calculando os valores SHAP...")
+    explainer = shap.Explainer(model)
+    shap_values = explainer(test_features)
+
+    logger.info("Previsões e avaliação completadas.")
+    
+    # encapsulando as variaveis em dicionarios versionados
+    predicted_target = pd.DataFrame(predicted_target)
+    predicted_target.rename(columns={0:"predicted_target"}, inplace=True)
+    
+    shap_values = pd.DataFrame(shap_values.values)
+    error_metrics = pd.DataFrame([error_metrics])
+
+    return predicted_target, shap_values, error_metrics

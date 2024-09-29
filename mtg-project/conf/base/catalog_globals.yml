@@ -1,2 +1,3 @@
 _gcp:
-  bucket_url: "gcs://mana_curve_bucket/"
+  bucket_url: "gcs://mana_curve_bucket"
+_run_key: "2024-09-29"

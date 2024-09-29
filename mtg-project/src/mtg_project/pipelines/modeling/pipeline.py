@@ -3,7 +3,8 @@ from .nodes import (
     feature_engineering,
     feature_selection,
     train_test_split,
-    fit_model
+    fit_model,
+    predict_and_evaluate_model
 )
 
 def create_modeling_pipeline(**kwargs) -> Pipeline:
@@ -52,6 +53,14 @@ def create_modeling_pipeline(**kwargs) -> Pipeline:
                 outputs=["best_model", "best_hiper_params"],
                 name="fit_decision_tree_model_node",
             ),
+            node(
+                func=predict_and_evaluate_model,
+                inputs=["best_model", "test_features", "test_target"],
+                outputs=["predicted_target", "shap_values", "error_metrics"],
+                name="predict_and_evaluate_model_node",
+            ),
+
+
             
         ]
     )

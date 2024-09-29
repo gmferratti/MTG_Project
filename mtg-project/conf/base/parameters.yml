@@ -2,6 +2,8 @@
 
 # parametros globais
 global:
+  # garantir que está igual em globals.yml
+  run_key: "2024-09-29"
   user:
     # mude para o seu proprio diretorio
     project_path: "C:/Users/gufer/OneDrive/Documentos/FIAP/Fase_03/mtg-project"
@@ -12,13 +14,13 @@ preprocessing:
     zip_url: "https://mtgjson.com/api/v5/AllDeckFiles.zip"
     zip_folder: "data/01_raw/"
     log_folder: "data/01_raw/decks_log/"
-    deck_cards: 40
+    deck_cards: 60
     sample_size_ratio: 0.25
 
 # pipeline de simulacao
 simulation:
-  n_players: 4
-  matches_per_player: 10
+  n_players: 5
+  matches_per_player: 100
   hand_size_stop: 0
   max_turns: 12
   max_mulligans: 3

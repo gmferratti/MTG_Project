@@ -5,15 +5,13 @@ import random
 import os
 import warnings
 
-from typing import List, Dict
+from typing import List, Dict, Callable
 from faker import Faker
 
 from classes.deck import Deck
 from classes.player import Player
 from classes.player_tracker import PlayerTracker
 from src.mtg_project.pipelines.utils import setup_logger, get_last_file
-
-from ...config import run_key
 
 warnings.filterwarnings("ignore")
 
@@ -115,39 +113,49 @@ def assign_decks_to_players(
         handler.close()
         logger.removeHandler(handler)
 
-    return {run_key:players_with_decks}
+    # Preparar o dicionário para o PartitionedDataset
+    players_with_decks = {}
+    for player in players:
+        # Nome da partição inclui run_key e nome do jogador
+        partition_name = f"{player.name.replace(' ', '_')}"
+        players_with_decks[partition_name] = player
+
+    return players_with_decks
 
 def simulate_player_matches(
         params: dict, 
-        players_with_decks: list) -> pd.DataFrame:
+        players_with_decks: Dict[str, Callable]) -> Dict[str, pd.DataFrame]:
     """
-    Simulates Magic: The Gathering matches for a list of players based on the provided simulation parameters.
+    Simula partidas de Magic: The Gathering para uma lista de jogadores com base nos parâmetros fornecidos.
 
-    Parameters:
+    Parâmetros:
     -----------
     params : dict
-        A dictionary containing the simulation parameters, including:
-        - 'max_mulligans': Maximum number of mulligans allowed per player.
-        - 'mulligan_prob': Probability of a player choosing to mulligan.
-        - 'hand_size_stop': Minimum hand size at which the simulation will stop.
-        - 'max_turns': Maximum number of turns per match.
-        - 'extra_land_prob': Probability of playing an extra land during a turn.
-        - 'matches_per_player': Number of matches to simulate per player.
-        - 'log_folder': Folder path for logging the simulation process.
-    
-    players_with_decks : list
-        A list of Player objects, each with an assigned deck to be used in the simulation.
+        Dicionário contendo os parâmetros de simulação.
 
-    Returns:
+    players_with_decks : Dict[str, Callable]
+        Dicionário onde as chaves são os nomes dos arquivos (e.g., 'Jeremy_Wiggins.pkl')
+        e os valores são métodos que carregam objetos Player.
+
+    run_key : str
+        Chave que identifica a execução atual (pode ser uma data ou outro identificador).
+
+    Retorna:
     --------
-    pd.DataFrame
-        A DataFrame containing the match data for all players across all matches and turns, including:
-        - Player attributes at each turn.
-        - Match number for each simulation.
+    Dict[str, pd.DataFrame]
+        Dicionário onde as chaves são combinações de run_key, nome do jogador e número da partida,
+        e os valores são DataFrames contendo os dados das partidas.
     """
-    # Lendo os ultimos players com decks
-    players_with_decks = get_last_file(players_with_decks)()
-    
+    # Carregar os jogadores chamando os métodos de carregamento
+    loaded_players = {}
+    for partition_name, load_method in players_with_decks.items():
+        player = load_method()  # Chama o método _load para obter o objeto Player
+        loaded_players[partition_name] = player
+
+    # Verificar se há jogadores carregados
+    if not loaded_players:
+        raise ValueError("Nenhum jogador foi carregado.")
+
     # Atribuir os parâmetros
     max_mulligans = params["max_mulligans"]
     mulligan_prob = params["mulligan_prob"]
@@ -160,38 +168,50 @@ def simulate_player_matches(
     # Caminho do arquivo de log
     log_filepath = os.path.join(log_folder, 'player_matches.txt')
 
-    # Cria a pasta de log se ela não existir
+    # Criar a pasta de log se ela não existir
     os.makedirs(log_folder, exist_ok=True)
 
-    # Configura o logger geral
+    # Configurar o logger geral
     logger = setup_logger("player_matches", log_filepath)
 
-    # Log de início da validação
-    logger.info(f"Initiating simulations...")
+    # Log de início da simulação
+    logger.info("Iniciando simulações...")
 
-    # Inicializa o tracker para armazenar os dados
-    tracker = PlayerTracker()
+    # Dicionário para armazenar os resultados de cada partida
+    matches_data = {}
 
     # Loop através dos jogadores e realizar as simulações de partidas
-    for player in players_with_decks:
-        for match in range(matches_per_player):
+    for partition_name, player in loaded_players.items():
+        for match_num in range(1, matches_per_player + 1):
+            logger.info(f"Simulando partida {match_num} para o jogador '{player.name}'...")
 
-            logger.info(f"Simulating match {match + 1} for player '{player.name}'...")
-            
-            # Simular várias partidas para o jogador
-            player.play_a_match(tracker, 
-                                max_mulligans, 
-                                mulligan_prob, 
-                                max_turns, 
-                                hand_size_stop, 
-                                extra_land_prob)
+            # Inicializa o tracker para armazenar os dados da partida atual
+            tracker = PlayerTracker()
 
-    # Obter os dados de todas as partidas e turnos
-    matches_dataframe = tracker.get_data()
-    
+            # Simula uma partida
+            player.play_a_match(
+                tracker, 
+                max_mulligans, 
+                mulligan_prob, 
+                max_turns, 
+                hand_size_stop, 
+                extra_land_prob
+            )
+
+            # Obter os dados da partida atual
+            match_dataframe = tracker.get_data()
+
+            # Construir o nome da partição usando run_key, nome do jogador e número da partida
+            player_name_sanitized = player.name.replace(' ', '_')
+            match_num_filled = str(match_num).zfill(3)
+            partition_key = f"{player_name_sanitized}/match_{match_num_filled}"
+
+            # Armazena o DataFrame da partida atual no dicionário de resultados
+            matches_data[partition_key] = match_dataframe
+
     # Remover o handler para evitar problemas futuros
     for handler in logger.handlers:
         handler.close()
         logger.removeHandler(handler)
-    
-    return {run_key:matches_dataframe}
+
+    return matches_data

@@ -26,111 +26,82 @@ players:
 
 players_with_decks:
   type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/02_intermediate/players_with_decks
+  path: ${_gcp.bucket_url}/02_intermediate/players_with_decks/${_run_key}
   dataset:
     type: pickle.PickleDataset
+  filename_suffix: .pkl
   credentials: gcs_credentials
 
 matches_df:
   type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/03_primary/matches_df
+  path: ${_gcp.bucket_url}/03_primary/matches_df/${_run_key}
   dataset:
     type: pandas.ParquetDataset
+  filename_suffix: .parquet
   credentials: gcs_credentials
 
 ### FEATURE ENGINEERING ###
 
 features_df:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/04_feature/features_df
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/04_feature/features_df/${_run_key}/features_df.parquet
   credentials: gcs_credentials
 
 selected_features_df:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/04_feature/selected_features
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/04_feature/selected_features/${_run_key}/selected_features_df.parquet
   credentials: gcs_credentials
 
 selected_features_cols:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/04_feature/selected_features_cols
-  dataset:
-    type: pickle.PickleDataset
+  type: pickle.PickleDataset
+  filepath: ${_gcp.bucket_url}/04_feature/selected_features_cols/${_run_key}/selected_features_cols.pkl
   credentials: gcs_credentials
 
 train_features:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/05_model_input/train_features
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/05_model_input/train_features/${_run_key}/train_features.parquet
   credentials: gcs_credentials
 
 test_features:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/05_model_input/test_features
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/05_model_input/test_features/${_run_key}/test_features.parquet
   credentials: gcs_credentials
 
 train_target:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/05_model_input/train_target
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/05_model_input/train_target/${_run_key}/train_target.parquet
   credentials: gcs_credentials
 
 test_target:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/05_model_input/test_target
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/05_model_input/test_target/${_run_key}/test_target.parquet
   credentials: gcs_credentials
 
 ### MODELING ###
 
 best_model:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/06_models/model
-  dataset:
-    type: pickle.PickleDataset
+  type: pickle.PickleDataset
+  filepath: ${_gcp.bucket_url}/06_models/model/${_run_key}/best_model.pkl
   credentials: gcs_credentials
 
 best_hiper_params:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/06_models/hiper_params
-  dataset:
-    type: pickle.PickleDataset
+  type: pickle.PickleDataset
+  filepath: ${_gcp.bucket_url}/06_models/hiper_params/${_run_key}/best_hiper_params.pkl
   credentials: gcs_credentials
 
 predicted_target:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/07_model_output/predicted_target
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/07_model_output/predicted_target/${_run_key}/predicted_target.parquet
   credentials: gcs_credentials
 
 ### REPORTING ###
 
 shap_values:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/08_reporting/shap_values
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/08_reporting/shap_values/${_run_key}/shap_values.parquet
   credentials: gcs_credentials
 
 error_metrics:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/08_reporting/error_metrics
-  dataset:
-    type: pandas.ParquetDataset
-  credentials: gcs_credentials
-
-graph_objects:
-  type: partitions.PartitionedDataset
-  path: ${_gcp.bucket_url}/08_reporting/error_metrics
-  dataset:
-    type: pandas.ParquetDataset
+  type: pandas.ParquetDataset
+  filepath: ${_gcp.bucket_url}/08_reporting/error_metrics/${_run_key}/error_metrics.parquet
   credentials: gcs_credentials
